@@ -1,0 +1,21 @@
+
+  .left-up-image {
+    position: absolute;
+    left: calc(50%);  /* 距离左边10% */
+    top: calc(10%);   /* 距离顶部10% */
+    height: 10vh;     /* 高度设置为页面高度的20% */
+    width: auto;      /* 宽度自动调整保持比例 */
+    transition: opacity 0.3s ease;  /* 为透明度设置平滑过渡 */
+    z-index: -1;       /* 设置z-index，使图片位于较低层级 */
+  }
+
+  .left-bottom-image {
+    position: absolute;
+    left: calc(10%);  /* 距离左边10% */
+    bottom: calc(10%);   /* 距离顶部10% */
+    height: 20vh;     /* 高度设置为页面高度的20% */
+    width: auto;      /* 宽度自动调整保持比例 */
+    transition: opacity 0.3s ease;  /* 为透明度设置平滑过渡 */
+    z-index: -1;       /* 设置z-index，使图片位于较低层级 */
+  }
+  
