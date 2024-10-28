@@ -101,3 +101,9 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - com.autoBI073.controller
+
+openai:
+  model: "gpt-4o-mini"
+  api:
+    url:
+      https://api.openai.com/v1/chat/completions

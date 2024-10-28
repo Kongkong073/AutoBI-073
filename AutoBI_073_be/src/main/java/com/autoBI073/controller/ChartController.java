@@ -6,9 +6,10 @@ import com.autoBI073.common.ErrorCode;
 import com.autoBI073.common.ResultUtils;
 import com.autoBI073.constant.CommonConstant;
 import com.autoBI073.constant.UserConstant;
-import com.autoBI073.model.dto.chart.ChartEditRequest;
-import com.autoBI073.model.dto.chart.ChartUpdateRequest;
+import com.autoBI073.model.dto.chart.*;
 import com.autoBI073.service.ChartService;
+import com.autoBI073.utils.CsvUtils;
+import com.autoBI073.utils.ExcelUtils;
 import com.autoBI073.utils.SqlUtils;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -16,8 +17,6 @@ import com.google.gson.Gson;
 import com.autoBI073.annotation.AuthCheck;
 import com.autoBI073.exception.BusinessException;
 import com.autoBI073.exception.ThrowUtils;
-import com.autoBI073.model.dto.chart.ChartAddRequest;
-import com.autoBI073.model.dto.chart.ChartQueryRequest;
 import com.autoBI073.model.entity.Chart;
 import com.autoBI073.model.entity.User;
 import com.autoBI073.service.UserService;
@@ -25,10 +24,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 
 /**
  * 帖子接口
@@ -46,6 +51,16 @@ public class ChartController {
 
     @Resource
     private UserService userService;
+
+    @Qualifier("openaiRestTemplate")
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Value("${openai.model}")
+    private String model;
+
+    @Value("${openai.api.url}")
+    private String apiUrl;
 
     private final static Gson GSON = new Gson();
 
@@ -139,21 +154,6 @@ public class ChartController {
         return ResultUtils.success(chart);
     }
 
-//    /**
-//     * 分页获取列表（仅管理员）
-//     *
-//     * @param chartQueryRequest
-//     * @return
-//     */
-//    @PostMapping("/list/page")
-//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-//    public BaseResponse<Page<Chart>> listChartByPage(@RequestBody ChartQueryRequest chartQueryRequest) {
-//        long current = chartQueryRequest.getCurrent();
-//        long size = chartQueryRequest.getPageSize();
-//        Page<Chart> chartPage = chartService.page(new Page<>(current, size),
-//                getQueryWrapper(chartQueryRequest));
-//        return ResultUtils.success(chartPage);
-//    }
 
     /**
      * 分页获取列表
@@ -242,6 +242,7 @@ public class ChartController {
         }
 
         Long id = chartQueryRequest.getId();
+        String name = chartQueryRequest.getName();
         String goal = chartQueryRequest.getGoal();
         String chartType = chartQueryRequest.getChartType();
         Long userId = chartQueryRequest.getUserId();
@@ -249,6 +250,7 @@ public class ChartController {
         String sortOrder = chartQueryRequest.getSortOrder();
 
         queryWrapper.eq(id != null && id > 0, "id", id);
+        queryWrapper.eq(StringUtils.isNotBlank(name), "name", name);
         queryWrapper.eq(StringUtils.isNotBlank(goal), "goal", goal);
         queryWrapper.eq(StringUtils.isNotBlank(chartType), "chartType", chartType);
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
@@ -257,4 +259,104 @@ public class ChartController {
                 sortField);
         return queryWrapper;
     }
+
+    private String processFile(MultipartFile multipartFile) throws IllegalArgumentException, IOException {
+        String fileName = multipartFile.getOriginalFilename();
+        String result;
+
+        if (fileName == null || fileName.isEmpty()) {
+            throw new IllegalArgumentException("文件名为空，无法处理该文件。");
+        }
+
+        // 将文件名转换为小写以确保不区分大小写
+        fileName = fileName.toLowerCase();
+
+        if (fileName.endsWith(".csv")) {
+            // 如果是CSV文件，调用CsvUtils处理
+            result = CsvUtils.convertCsvToString(multipartFile);
+        } else if (fileName.endsWith(".xls") || fileName.endsWith(".xlsx")) {
+            // 如果是Excel文件，调用ExcelUtils处理
+            result = ExcelUtils.excelToCsv(multipartFile);
+        } else {
+            // 如果文件不是CSV或Excel文件，抛出异常
+            throw new IllegalArgumentException("文件格式不支持，请上传CSV或Excel文件。");
+        }
+
+        return result;
+    }
+
+    /**
+     * 智能分析
+     *
+     * @param multipartFile
+     * @param genChartByAiRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/gen")
+    public BaseResponse<String> genChartByAi(@RequestPart("file") MultipartFile multipartFile,
+                                             GenChartByAiRequest genChartByAiRequest, HttpServletRequest request){
+        String name = genChartByAiRequest.getName();
+        String goal = genChartByAiRequest.getGoal();
+        String chartType = genChartByAiRequest.getChartType();
+
+        // 校验
+        // 如果分析目标为空，就抛出请求参数错误异常，并给出提示
+        ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
+        // 如果名称不为空，并且名称长度大于100，就抛出异常，并给出提示
+        ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
+
+        // 用户输入
+        StringBuilder userInput = new StringBuilder();
+        userInput.append("你是一个数据分析师，接下来我会给你我的分析目标和原始数据，请告诉我分析结论。").append("\n");
+        userInput.append("分析目标：").append(goal).append("\n");
+
+        // 压缩后的数据（把multipartFile传进来，其他的东西先注释）
+        String result = null;
+        try {
+            result = processFile(multipartFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        userInput.append("数据：").append(result).append("\n");
+
+
+        // create a request
+        ChatRequest request1 = new ChatRequest(model, result);
+
+        // call the API
+        ChatResponse response = restTemplate.postForObject(apiUrl, request1, ChatResponse.class);
+
+        if (response == null || response.getChoices() == null || response.getChoices().isEmpty()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "无返回respnse");
+        }
+
+        // return the first response
+        return ResultUtils.success(response.getChoices().get(0).getMessage().getContent());
+//        // 读取到用户上传的 excel 文件，进行一个处理
+//        User loginUser = userService.getLoginUser(request);
+//        // 文件目录：根据业务、用户来划分
+//        String uuid = RandomStringUtils.randomAlphanumeric(8);
+//        String filename = uuid + "-" + multipartFile.getOriginalFilename();
+//        File file = null;
+//        try {
+//
+//            // 返回可访问地址
+//            return ResultUtils.success("");
+//        } catch (Exception e) {
+////            log.error("file upload error, filepath = " + filepath, e);
+//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
+//        } finally {
+//            if (file != null) {
+//                // 删除临时文件
+//                boolean delete = file.delete();
+//                if (!delete) {
+////                    log.error("file delete error, filepath = {}", filepath);
+//                }
+//            }
+//        }
+    }
+
+
+
 }
