@@ -10,6 +10,7 @@ import com.autoBI073.model.dto.chart.*;
 import com.autoBI073.service.ChartService;
 import com.autoBI073.utils.CsvUtils;
 import com.autoBI073.utils.ExcelUtils;
+import com.autoBI073.utils.MyStringUtils;
 import com.autoBI073.utils.SqlUtils;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -300,6 +301,8 @@ public class ChartController {
         String goal = genChartByAiRequest.getGoal();
         String chartType = genChartByAiRequest.getChartType();
 
+        User loginUser = userService.getLoginUser(request);
+
         // 校验
         // 如果分析目标为空，就抛出请求参数错误异常，并给出提示
         ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
@@ -308,8 +311,8 @@ public class ChartController {
 
         // 用户输入
         StringBuilder userInput = new StringBuilder();
-        userInput.append("你是一个数据分析师，接下来我会给你我的分析目标和原始数据，请告诉我分析结论。").append("\n");
         userInput.append("分析目标：").append(goal).append("\n");
+        userInput.append("目标图表类型: ").append(chartType).append("\n");
 
         // 压缩后的数据（把multipartFile传进来，其他的东西先注释）
         String result = null;
@@ -318,21 +321,33 @@ public class ChartController {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        userInput.append("数据：").append(result).append("\n");
+        userInput.append("原始数据：").append(result).append("\n");
+
 
 
         // create a request
-        ChatRequest request1 = new ChatRequest(model, result);
+        ChatRequest request1 = new ChatRequest(model, userInput.toString());
 
         // call the API
         ChatResponse response = restTemplate.postForObject(apiUrl, request1, ChatResponse.class);
 
-        if (response == null || response.getChoices() == null || response.getChoices().isEmpty()) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "无返回respnse");
-        }
 
-        // return the first response
-        return ResultUtils.success(response.getChoices().get(0).getMessage().getContent());
+        if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
+            String[] responses = MyStringUtils.splitWithDelimiter(response.getChoices().get(0).getMessage().getContent(), "\"JsEChartCode\"", "\"JsonEChartCode\"");
+            Chart chart = new Chart();
+            chart.setName(name);
+            chart.setGoal(goal);
+            chart.setChartData(result);
+            chart.setChartType(chartType);
+            chart.setGenChart(MyStringUtils.extractContent(responses[1]));
+            chart.setGenResult(MyStringUtils.extractContent(responses[0]));
+            chart.setUserId(loginUser.getId());
+            boolean saveResult = chartService.save(chart);
+            ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
+            return ResultUtils.success(responses[0] + "\\n" + responses[1] + "\\n" + responses[2]);
+        } else {
+            throw new RuntimeException("No structured response received from OpenAI API.");
+        }
 //        // 读取到用户上传的 excel 文件，进行一个处理
 //        User loginUser = userService.getLoginUser(request);
 //        // 文件目录：根据业务、用户来划分

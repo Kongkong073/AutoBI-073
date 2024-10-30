@@ -19,3 +19,24 @@
     z-index: -1;       /* 设置z-index，使图片位于较低层级 */
   }
   
+  :where(.css-dev-only-do-not-override-ni1kz0).ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn  {
+    color: #52C41A;
+  }
+
+
+  :where(.css-dev-only-do-not-override-ni1kz0).ant-tabs .ant-tabs-tab.ant-tabs-tab-active {
+    color: #52C41A;
+    
+  }
+
+  :where(.css-dev-only-do-not-override-ni1kz0).ant-btn-variant-solid{
+    background-color: #52C41A;
+  }
+
+  .ant-tabs-ink-bar {
+    background-color: #52C41A !important; /* 修改为所需的颜色 */
+  }
+
+  :where(.css-dev-only-do-not-override-ni1kz0) a {
+    color: #52C41A;
+  }

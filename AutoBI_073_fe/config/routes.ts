@@ -16,12 +16,14 @@ export default [
     layout: false,
     routes: [
       {
-        name: 'login',
+        name: '登录注册',
         path: '/user/login',
         component: './User/Login',
       },
     ],
   },
+
+
   // {
   //   path: '/user',
   //   layout: false,
@@ -35,9 +37,15 @@ export default [
   // },
   {
     path: '/welcome',
-    name: 'welcome',
+    name: '主页',
     icon: 'smile',
     component: './Welcome',
+  },
+  {
+    path: '/addChart',
+    name: '开始分析',
+    icon: 'star',
+    component: './AddChart',
   },
   {
     path: '/admin',
@@ -57,7 +65,7 @@ export default [
     ],
   },
   {
-    name: 'list.table-list',
+    name: '历史生成',
     icon: 'table',
     path: '/list',
     component: './TableList',

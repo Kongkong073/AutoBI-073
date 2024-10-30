@@ -26,7 +26,7 @@ import { createStyles } from 'antd-style';
 import '@/pages/User/CSS/login.css';
 import { Link } from 'react-router-dom';
 import { getLoginUserUsingGet, userLoginUsingPost } from '@/services/AutoBI-073/userController';
-
+import { ConfigProvider } from 'antd';
 
 
 const useStyles = createStyles(({ token }) => {
@@ -157,29 +157,267 @@ const Login: React.FC = () => {
   };
   const { status, type: loginType } = userLoginState;
 
+  // return (
+  //   <div className={styles.container}>
+  //     <Helmet>
+  //       <title>
+  //         {intl.formatMessage({
+  //           id: 'menu.login',
+  //           defaultMessage: '登录页',
+  //         })}
+  //         - {Settings.title}
+  //       </title>
+  //     </Helmet>
+  //     <Lang />
+  //     <div
+  //       style={{
+  //         flex: '1',
+  //         padding: '10vh 0',
+  //       }}
+  //     >
+  //       {/* 在页面右边添加图片 */}
+
+
+  //     {/* 右边登录表单 */}
+  //     <LoginForm
+  //           contentStyle={{
+  //             minWidth: 280,
+  //             maxWidth: '75vw',
+  //           }}
+  //           logo={<img alt="logo" src="/logo.svg" />}
+  //           title="AutoBI-073"
+  //           subTitle={intl.formatMessage({ id: 'AIGC 数据分析平台' })}
+            
+            
+  //           // initialValues={{
+  //           //   autoLogin: true,
+  //           // }}
+  //           // actions={[
+  //           //   <FormattedMessage
+  //           //     key="loginWith"
+  //           //     id="pages.login.loginWith"
+  //           //     defaultMessage="其他登录方式"
+  //           //   />,
+  //           //   <ActionIcons key="icons" />,
+  //           // ]}
+  //           onFinish={async (values) => {
+  //             await handleSubmit(values as API.UserLoginRequest);
+  //           }}
+  //         >
+  //           <Tabs
+  //             activeKey={type}
+  //             onChange={setType}
+  //             centered
+  //             items={[
+  //               {
+  //                 key: 'account',
+  //                 label: intl.formatMessage({
+  //                   id: 'pages.login.accountLogin.tab',
+  //                   defaultMessage: '账户密码登录',
+  //                 }),
+  //               },
+  //               {
+  //                 key: 'email',
+  //                 label: intl.formatMessage({
+  //                   id: 'pages.login.phoneLogin.tab',
+  //                   defaultMessage: '邮箱登录',
+  //                 }),
+  //               },
+  //             ]}
+  //           />
+
+  //           {/* {status === 'error' && loginType === 'account' && (
+  //             <LoginMessage
+  //               content={intl.formatMessage({
+  //                 id: 'pages.login.accountLogin.errorMessage',
+  //                 defaultMessage: '账户或密码错误',
+  //               })}
+  //             />
+  //           )} */}
+  //           {type === 'account' && (
+  //             <>
+  //               <ProFormText
+  //                 name="userAccount"
+  //                 fieldProps={{
+  //                   size: 'large',
+  //                   prefix: <UserOutlined />,
+  //                 }}
+  //                 placeholder={intl.formatMessage({
+  //                   id: 'pages.login.username.placeholder',
+  //                   defaultMessage: '用户名 (kong)',
+  //                 })}
+  //                 rules={[
+  //                   {
+  //                     required: true,
+  //                     message: (
+  //                       <FormattedMessage
+  //                         id="pages.login.username.required"
+  //                         defaultMessage="请输入用户名!"
+  //                       />
+  //                     ),
+  //                   },
+  //                 ]}
+  //               />
+  //               <ProFormText.Password
+  //                 name="userPassword"
+  //                 fieldProps={{
+  //                   size: 'large',
+  //                   prefix: <LockOutlined />,
+  //                 }}
+  //                 placeholder={intl.formatMessage({
+  //                   id: 'pages.login.password.placeholder',
+  //                   defaultMessage: '请输入密码 (12345678)',
+  //                 })}
+  //                 rules={[
+  //                   {
+  //                     required: true,
+  //                     message: (
+  //                       <FormattedMessage
+  //                         id="pages.login.password.required"
+  //                         defaultMessage="请输入密码！"
+  //                       />
+  //                     ),
+  //                   },
+  //                 ]}
+  //               />
+  //             </>
+  //           )}
+
+  //         {/* {status === 'error' && loginType === 'email' && <LoginMessage content="验证码错误" />} */}
+  //         {type === 'email' && (
+  //           <>
+  //             <ProFormText
+  //               fieldProps={{
+  //                 size: 'large',
+  //                 prefix: <MobileOutlined />,
+  //               }}
+  //               name="mobile"
+  //               placeholder={intl.formatMessage({
+  //                 id: 'pages.login.phoneNumber.placeholder',
+  //                 defaultMessage: '邮箱',
+  //               })}
+  //               rules={[
+  //                 {
+  //                   required: true,
+  //                   message: (
+  //                     <FormattedMessage
+  //                       id="pages.login.phoneNumber.required"
+  //                       defaultMessage="请输入邮箱！"
+  //                     />
+  //                   ),
+  //                 },
+  //                 {
+  //                   pattern: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
+  //                   message: (
+  //                     <FormattedMessage
+  //                       id="pages.login.phoneNumber.invalid"
+  //                       defaultMessage="邮箱格式错误！"
+  //                     />
+  //                   ),
+  //                 },
+  //               ]}
+  //             />
+  //             <ProFormCaptcha
+  //               fieldProps={{
+  //                 size: 'large',
+  //                 prefix: <LockOutlined />,
+  //               }}
+  //               captchaProps={{
+  //                 size: 'large',
+  //               }}
+  //               placeholder={intl.formatMessage({
+  //                 id: 'pages.login.captcha.placeholder',
+  //                 defaultMessage: '请输入验证码',
+  //               })}
+  //               captchaTextRender={(timing, count) => {
+  //                 if (timing) {
+  //                   return `${count} ${intl.formatMessage({
+  //                     id: 'pages.getCaptchaSecondText',
+  //                     defaultMessage: '获取验证码',
+  //                   })}`;
+  //                 }
+  //                 return intl.formatMessage({
+  //                   id: 'pages.login.phoneLogin.getVerificationCode',
+  //                   defaultMessage: '获取验证码',
+  //                 });
+  //               }}
+  //               name="captcha"
+  //               rules={[
+  //                 {
+  //                   required: true,
+  //                   message: (
+  //                     <FormattedMessage
+  //                       id="pages.login.captcha.required"
+  //                       defaultMessage="请输入验证码！"
+  //                     />
+  //                   ),
+  //                 },
+  //               ]}
+  //               onGetCaptcha={async (phone) => {
+  //                 const result = await getFakeCaptcha({
+  //                   phone,
+  //                 });
+  //                 if (!result) {
+  //                   return;
+  //                 }
+  //                 message.success('获取验证码成功！验证码为：1234');
+  //               }}
+  //             />
+  //           </>
+  //         )}
+
+  //           <div
+  //             style={{
+  //               marginBottom: 30,
+  //             }}
+  //           >
+  //             <ProFormCheckbox noStyle name="autoLogin">
+  //               <FormattedMessage id="pages.login.rememberMe" defaultMessage="自动登录" />
+  //             </ProFormCheckbox>
+
+  //             <Link
+  //               to='/user/register'
+  //               style={{
+  //               float: 'right',
+  //               }}
+  //             >
+  //             <FormattedMessage id="pages.login.forgotPassword" defaultMessage="新用户注册" />
+  //             </Link>
+  //           </div>
+  //         </LoginForm>
+
+
+      
+
+  //     </div>
+  //     <Footer />
+  //   </div>
   return (
-    <div className={styles.container}>
-      <Helmet>
-        <title>
-          {intl.formatMessage({
-            id: 'menu.login',
-            defaultMessage: '登录页',
-          })}
-          - {Settings.title}
-        </title>
-      </Helmet>
-      <Lang />
-      <div
-        style={{
-          flex: '1',
-          padding: '10vh 0',
-        }}
-      >
-        {/* 在页面右边添加图片 */}
-
-
-      {/* 右边登录表单 */}
-      <LoginForm
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#52C41A', // 设置登录页面的主色
+        },
+      }}
+    >
+      <div className={styles.container}>
+        <Helmet>
+          <title>
+            {intl.formatMessage({
+              id: 'menu.login',
+              defaultMessage: '登录页',
+            })}
+            - {Settings.title}
+          </title>
+        </Helmet>
+        <Lang />
+        <div
+          style={{
+            flex: '1',
+            padding: '10vh 0',
+          }}
+        >
+          <LoginForm
             contentStyle={{
               minWidth: 280,
               maxWidth: '75vw',
@@ -187,19 +425,6 @@ const Login: React.FC = () => {
             logo={<img alt="logo" src="/logo.svg" />}
             title="AutoBI-073"
             subTitle={intl.formatMessage({ id: 'AIGC 数据分析平台' })}
-            
-            
-            // initialValues={{
-            //   autoLogin: true,
-            // }}
-            // actions={[
-            //   <FormattedMessage
-            //     key="loginWith"
-            //     id="pages.login.loginWith"
-            //     defaultMessage="其他登录方式"
-            //   />,
-            //   <ActionIcons key="icons" />,
-            // ]}
             onFinish={async (values) => {
               await handleSubmit(values as API.UserLoginRequest);
             }}
@@ -225,15 +450,6 @@ const Login: React.FC = () => {
                 },
               ]}
             />
-
-            {/* {status === 'error' && loginType === 'account' && (
-              <LoginMessage
-                content={intl.formatMessage({
-                  id: 'pages.login.accountLogin.errorMessage',
-                  defaultMessage: '账户或密码错误',
-                })}
-              />
-            )} */}
             {type === 'account' && (
               <>
                 <ProFormText
@@ -244,7 +460,7 @@ const Login: React.FC = () => {
                   }}
                   placeholder={intl.formatMessage({
                     id: 'pages.login.username.placeholder',
-                    defaultMessage: '用户名',
+                    defaultMessage: '用户名 (kong)',
                   })}
                   rules={[
                     {
@@ -266,7 +482,7 @@ const Login: React.FC = () => {
                   }}
                   placeholder={intl.formatMessage({
                     id: 'pages.login.password.placeholder',
-                    defaultMessage: '请输入密码',
+                    defaultMessage: '请输入密码 (12345678)',
                   })}
                   rules={[
                     {
@@ -282,90 +498,75 @@ const Login: React.FC = () => {
                 />
               </>
             )}
-
-          {/* {status === 'error' && loginType === 'email' && <LoginMessage content="验证码错误" />} */}
-          {type === 'email' && (
-            <>
-              <ProFormText
-                fieldProps={{
-                  size: 'large',
-                  prefix: <MobileOutlined />,
-                }}
-                name="mobile"
-                placeholder={intl.formatMessage({
-                  id: 'pages.login.phoneNumber.placeholder',
-                  defaultMessage: '邮箱',
-                })}
-                rules={[
-                  {
-                    required: true,
-                    message: (
-                      <FormattedMessage
-                        id="pages.login.phoneNumber.required"
-                        defaultMessage="请输入邮箱！"
-                      />
-                    ),
-                  },
-                  {
-                    pattern: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
-                    message: (
-                      <FormattedMessage
-                        id="pages.login.phoneNumber.invalid"
-                        defaultMessage="邮箱格式错误！"
-                      />
-                    ),
-                  },
-                ]}
-              />
-              <ProFormCaptcha
-                fieldProps={{
-                  size: 'large',
-                  prefix: <LockOutlined />,
-                }}
-                captchaProps={{
-                  size: 'large',
-                }}
-                placeholder={intl.formatMessage({
-                  id: 'pages.login.captcha.placeholder',
-                  defaultMessage: '请输入验证码',
-                })}
-                captchaTextRender={(timing, count) => {
-                  if (timing) {
-                    return `${count} ${intl.formatMessage({
-                      id: 'pages.getCaptchaSecondText',
-                      defaultMessage: '获取验证码',
-                    })}`;
-                  }
-                  return intl.formatMessage({
-                    id: 'pages.login.phoneLogin.getVerificationCode',
-                    defaultMessage: '获取验证码',
-                  });
-                }}
-                name="captcha"
-                rules={[
-                  {
-                    required: true,
-                    message: (
-                      <FormattedMessage
-                        id="pages.login.captcha.required"
-                        defaultMessage="请输入验证码！"
-                      />
-                    ),
-                  },
-                ]}
-                onGetCaptcha={async (phone) => {
-                  const result = await getFakeCaptcha({
-                    phone,
-                  });
-                  if (!result) {
-                    return;
-                  }
-                  message.success('获取验证码成功！验证码为：1234');
-                }}
-              />
-            </>
-          )}
-
+            {type === 'email' && (
+              <>
+                <ProFormText
+                  fieldProps={{
+                    size: 'large',
+                    prefix: <MobileOutlined />,
+                  }}
+                  name="mobile"
+                  placeholder={intl.formatMessage({
+                    id: 'pages.login.phoneNumber.placeholder',
+                    defaultMessage: '邮箱',
+                  })}
+                  rules={[
+                    {
+                      required: true,
+                      message: (
+                        <FormattedMessage
+                          id="pages.login.phoneNumber.required"
+                          defaultMessage="请输入邮箱！"
+                        />
+                      ),
+                    },
+                    {
+                      pattern: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
+                      message: (
+                        <FormattedMessage
+                          id="pages.login.phoneNumber.invalid"
+                          defaultMessage="邮箱格式错误！"
+                        />
+                      ),
+                    },
+                  ]}
+                />
+                <ProFormCaptcha
+                  fieldProps={{
+                    size: 'large',
+                    prefix: <LockOutlined />,
+                  }}
+                  captchaProps={{
+                    size: 'large',
+                  }}
+                  placeholder={intl.formatMessage({
+                    id: 'pages.login.captcha.placeholder',
+                    defaultMessage: '请输入验证码',
+                  })}
+                  name="captcha"
+                  rules={[
+                    {
+                      required: true,
+                      message: (
+                        <FormattedMessage
+                          id="pages.login.captcha.required"
+                          defaultMessage="请输入验证码！"
+                        />
+                      ),
+                    },
+                  ]}
+                  onGetCaptcha={async (phone) => {
+                    const result = await getFakeCaptcha({
+                      phone,
+                    });
+                    if (!result) {
+                      return;
+                    }
+                    message.success('获取验证码成功！验证码为：1234');
+                  }}
+                />
+              </>
+            )}
             <div
               style={{
                 marginBottom: 30,
@@ -376,22 +577,19 @@ const Login: React.FC = () => {
               </ProFormCheckbox>
 
               <Link
-                to='/user/register'
+                to="/user/register"
                 style={{
-                float: 'right',
+                  float: 'right',
                 }}
               >
-              <FormattedMessage id="pages.login.forgotPassword" defaultMessage="新用户注册" />
+                <FormattedMessage id="pages.login.forgotPassword" defaultMessage="新用户注册" />
               </Link>
             </div>
           </LoginForm>
-
-
-      
-
+        </div>
+        <Footer />
       </div>
-      <Footer />
-    </div>
+    </ConfigProvider>
   );
 };
 
