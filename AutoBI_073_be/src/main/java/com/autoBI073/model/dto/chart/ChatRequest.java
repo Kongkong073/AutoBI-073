@@ -15,7 +15,7 @@ public class ChatRequest implements Serializable {
     @JsonProperty("max_completion_tokens")
     private int max_completion_tokens = 800;
     @JsonProperty("temperature")
-    private double temperature = 0.7;
+    private double temperature = 0.2;
     @JsonProperty("response_format")
     private ResponseFormat responseFormat;
 
@@ -25,8 +25,8 @@ public class ChatRequest implements Serializable {
         this.model = model;
 
         this.messages = new ArrayList<>();
-        this.messages.add(new Message("system", "你是一个数据分析师，Echarts大师。接下来我会给你我的分析目标，目标图表类型和原始数据。" +
-                "请帮生成分析结果，并生成指定图表类型的可以运行的Echarts JS代码（只包含option中内容）和可以在React前端显示的Json代码。"));
+        this.messages.add(new Message("system", "你是一个数据分析师和Echarts大师。接下来我会给你我的‘数据说明和分析/生成目标’，‘生成图表类型’和‘原始数据’。" +
+                "请帮生成分析结果，并生成指定图表类型的可以运行的Echarts JS代码（只包含option中内容）和可以在React前端显示的Echarts Json代码。"));
         this.messages.add(new Message("user", prompt));
         this.responseFormat = new ResponseFormat(new JsonSchema("AnalysisSchema"));
     }

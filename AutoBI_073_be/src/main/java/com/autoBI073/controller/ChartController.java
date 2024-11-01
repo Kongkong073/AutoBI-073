@@ -312,8 +312,8 @@ public class ChartController {
 
         // 用户输入
         StringBuilder userInput = new StringBuilder();
-        userInput.append("分析目标：").append(goal).append("\n");
-        userInput.append("目标图表类型: ").append(chartType).append("\n");
+        userInput.append("数据说明和分析/生成目标：").append(goal).append("\n");
+        userInput.append("生成图表类型: ").append(chartType).append("\n");
 
         // 压缩后的数据（把multipartFile传进来，其他的东西先注释）
         String result = null;
