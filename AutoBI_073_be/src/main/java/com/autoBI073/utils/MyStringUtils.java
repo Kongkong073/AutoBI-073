@@ -43,7 +43,7 @@ public class MyStringUtils {
 
         // 如果字符串以逗号结尾，去掉最后一个逗号
         if (content.endsWith(",")) {
-            content = content.substring(0, content.length() - 1).trim();
+            content = content.substring(1, content.length() - 2).trim();
         }
 
         return content;

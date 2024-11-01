@@ -25,26 +25,21 @@ export default [
 
 
   // {
-  //   path: '/user',
-  //   layout: false,
-  //   routes: [
-  //     {
-  //       name: 'register',
-  //       path: '/user/register',
-  //       component: './User/Register',
-  //     },
-  //   ],
+  //   // layout: false,
+  //   name: 'register',
+  //   path: '/user/register',
+  //   component: './User/Register',
   // },
   {
     path: '/welcome',
     name: '主页',
-    icon: 'smile',
+    icon: 'home',
     component: './Welcome',
   },
   {
     path: '/addChart',
     name: '开始分析',
-    icon: 'star',
+    icon: 'PlayCircle',
     component: './AddChart',
   },
   {
@@ -66,7 +61,7 @@ export default [
   },
   {
     name: '历史生成',
-    icon: 'table',
+    icon: 'ClockCircle',
     path: '/list',
     component: './TableList',
   },

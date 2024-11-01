@@ -7,6 +7,7 @@ import com.autoBI073.common.ResultUtils;
 import com.autoBI073.constant.CommonConstant;
 import com.autoBI073.constant.UserConstant;
 import com.autoBI073.model.dto.chart.*;
+import com.autoBI073.model.vo.BiResponse;
 import com.autoBI073.service.ChartService;
 import com.autoBI073.utils.CsvUtils;
 import com.autoBI073.utils.ExcelUtils;
@@ -295,7 +296,7 @@ public class ChartController {
      * @return
      */
     @PostMapping("/gen")
-    public BaseResponse<String> genChartByAi(@RequestPart("file") MultipartFile multipartFile,
+    public BaseResponse<BiResponse> genChartByAi(@RequestPart("file") MultipartFile multipartFile,
                                              GenChartByAiRequest genChartByAiRequest, HttpServletRequest request){
         String name = genChartByAiRequest.getName();
         String goal = genChartByAiRequest.getGoal();
@@ -339,12 +340,19 @@ public class ChartController {
             chart.setGoal(goal);
             chart.setChartData(result);
             chart.setChartType(chartType);
-            chart.setGenChart(MyStringUtils.extractContent(responses[1]));
+            chart.setGenChart(MyStringUtils.extractContent(responses[2]));
             chart.setGenResult(MyStringUtils.extractContent(responses[0]));
             chart.setUserId(loginUser.getId());
             boolean saveResult = chartService.save(chart);
             ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
-            return ResultUtils.success(responses[0] + "\\n" + responses[1] + "\\n" + responses[2]);
+
+            BiResponse biResponse = new BiResponse();
+            biResponse.setGenChart(MyStringUtils.extractContent(responses[2]));
+            biResponse.setGenResult(MyStringUtils.extractContent(responses[0]));
+            biResponse.setGenJsEchartCode(MyStringUtils.extractContent(responses[1]));
+            biResponse.setChartId(chart.getId());
+            return ResultUtils.success(biResponse);
+//            return ResultUtils.success(responses[0] + "\\n" + responses[1] + "\\n" + responses[2]);
         } else {
             throw new RuntimeException("No structured response received from OpenAI API.");
         }
