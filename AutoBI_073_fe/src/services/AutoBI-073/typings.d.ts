@@ -100,6 +100,7 @@ declare namespace API {
     chartData?: string;
     chartType?: string;
     createTime?: string;
+    echartsJsCode?: string;
     genChart?: string;
     genResult?: string;
     goal?: string;

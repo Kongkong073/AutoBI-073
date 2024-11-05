@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
-import { genChartByAiUsingPost, listChartByPageUsingPost } from '@/services/AutoBI-073/chartController';
+import { useState, useRef } from 'react';
+import { genChartByAiUsingPost } from '@/services/AutoBI-073/chartController';
 import React from 'react';
 import '@/pages/User/CSS/login.css';
 import TextArea from 'antd/es/input/TextArea';
-import { Button, Form, Input, Select, Space, Upload, Typography, Row, Col, Card } from 'antd';
-import { InboxOutlined, UploadOutlined } from '@ant-design/icons';
+import { Button, Form, Input, Select, Space, Upload, Row, Col, Modal, Spin, Typography } from 'antd';
+import { InboxOutlined } from '@ant-design/icons';
 import { message } from 'antd/lib';
 import ReactECharts from 'echarts-for-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -24,7 +24,7 @@ const AddChart: React.FC = () => {
     const [chart, setChart] = useState<API.BiResponse>();
     // 提交中的状态，默认未提交
     const [submitting, setSubmitting] = useState<boolean>(false);
-    const [option, setOption] = useState<any>();
+    const [option, setOption] = useState<any>("");
     const code = (chart?.genJsEchartCode || "")
     .replace(/\\n/g, "")          
     .replace(/\s+/g, " ")         
@@ -32,6 +32,38 @@ const AddChart: React.FC = () => {
     const [isCustom, setIsCustom] = useState(false);
     const [customValue, setCustomValue] = useState("");
     const [selectedValue, setSelectedValue] = useState(null);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const chartRef = useRef(null);
+
+      // 下载图片方法
+      const downloadImage = () => {
+        if (chartRef.current) {
+          const chartInstance = chartRef.current.getEchartsInstance();
+          const img = chartInstance.getDataURL({
+            type: 'png',
+            pixelRatio: 2,
+            backgroundColor: '#fff',
+          });
+      
+          // 创建下载链接并触发下载
+          const link = document.createElement('a');
+          link.href = img;
+          link.download = 'chart.png';
+          link.click();
+        } else {
+          console.error('Chart instance not found');
+        }
+      };
+
+      // 打开 Modal
+    const showModal = () => {
+      setIsModalVisible(true);
+    };
+
+    // 关闭 Modal
+    const handleCancel = () => {
+      setIsModalVisible(false);
+    };
   
     const handleSelectChange = (value) => {
       setSelectedValue(value);
@@ -52,25 +84,46 @@ const AddChart: React.FC = () => {
 
 
 
-  // 使用 prettier 格式化 JavaScript 代码
-    let formattedCode = '';
-    if (code && typeof code === 'string') {
-      try {
-        formattedCode = prettier.format(code, {
-          parser: 'babel',
-          plugins: [parserBabel],
-        });
-      } catch (error) {
-        console.error('Prettier format failed:', error);
-        message.error('代码格式化失败，请检查代码格式');
+  // // 使用 prettier 格式化 JavaScript 代码
+    // let formattedCode = '';
+    // console.log('code:', code, typeof code);
+    // if (code && typeof code === 'string') {
+    //   try {
+    //     formattedCode = prettier.format(code, {
+    //       parser: 'babel',
+    //       plugins: [parserBabel],
+    //     });
+    //     console.log('formattedCode: ', formattedCode);
+    //   } catch (error) {
+    //     console.error('Prettier format failed:', error);
+    //     message.error('代码格式化失败，请检查代码格式');
+    //   }
+    // } else {
+    //   console.warn('Code is empty or not a valid string');
+    // }
+
+    const formatCode = (code: string) => {
+      if (code && typeof code === 'string') {
+        try {
+          return prettier.format(code, {
+            parser: 'babel',
+            plugins: [parserBabel],
+          });
+        } catch (error) {
+          console.error('Prettier format failed:', error);
+          message.error('代码格式化失败');
+          return code; // 如果格式化失败，返回空字符串
+        }
+      } else {
+        //console.warn('Code is empty or not a valid string');
+        return ''; // 如果code为空或非字符串，返回空字符串
       }
-    } else {
-      console.warn('Code is empty or not a valid string');
-    }
+    };
+    
 
       // 处理复制操作
     const handleCopy = () => {
-      if (!formattedCode) {
+      if (formattedCode.length === 0) {
         message.error('无有效代码可复制');
         return;
       }
@@ -100,7 +153,9 @@ const AddChart: React.FC = () => {
     }
     // 当开始提交，把submitting设置为true
     setSubmitting(true);
-    
+    setChart(undefined);
+    setOption(undefined);
+
     if (selectedValue === '其他') {
       values.chartType = customValue;  // 将 customValue 动态赋值为 chartType
     } else {
@@ -125,14 +180,19 @@ const AddChart: React.FC = () => {
         message.success('分析成功');  
         // 解析成对象，为空则设为空字符串
         const chartOption = JSON.parse(JSON.parse(res.data.genChart ?? ''));
+        console.log("chartOption: ", chartOption);
         // 如果为空，则抛出异常，并提示'图表代码解析错误'
         if (!chartOption) {
-          throw new Error('图表代码解析错误')
+          // throw new Error('图表代码解析错误')
+          message.error('图表代码解析错误')
         // 如果成功
         } else {
           // 从后端得到响应结果之后，把响应结果设置到图表状态里
           setChart(res.data);
+          // 调整图表边距，避免被裁减
+          chartOption.grid = chartOption.grid || { left: '15%', right: '15%', top: '10%', bottom: '10%' };
           setOption(chartOption);
+
         }
       }  
     // 异常情况下，提示分析失败+具体失败原因
@@ -153,7 +213,11 @@ const AddChart: React.FC = () => {
       <Col span={12}
       xs={24} sm={24} md={12} lg={12} xl={12}
       >
-        <ProCard title="上传文件">
+        <ProCard title={
+            <Typography.Title level={4} style={{ margin: 0 }}>
+            用户输入
+            </Typography.Title>}
+        >
           <Form
             // 表单名称改为addChart
             name="addChart"
@@ -206,18 +270,18 @@ const AddChart: React.FC = () => {
           value={selectedValue || ''}
           allowClear
           options={[
-            { value: 'line', label: '折线图 (Line Chart)' },
-            { value: 'bar', label: '柱状图 (Bar Chart)' },
-            { value: 'pie', label: '饼图 (Pie Chart)' },
-            { value: 'scatter', label: '散点图 (Scatter Chart)' },
-            { value: 'radar', label: '雷达图 (Radar Chart)' },
-            { value: 'area', label: '面积图 (Area Chart)' },
-            { value: 'heatmap', label: '热力图 (Heatmap)' },
-            { value: 'boxplot', label: '箱线图 (Boxplot)' },
-            { value: 'funnel', label: '漏斗图 (Funnel Chart)' },
-            { value: 'sankey', label: '桑基图 (Sankey Diagram)' },
-            { value: 'gauge', label: '仪表盘 (Gauge)' },
-            { value: 'graph', label: '关系图 (Graph)' },
+            { value: '折线图', label: '折线图 (Line Chart)' },
+            { value: '柱状图', label: '柱状图 (Bar Chart)' },
+            { value: '饼图', label: '饼图 (Pie Chart)' },
+            { value: '散点图', label: '散点图 (Scatter Chart)' },
+            { value: '雷达图', label: '雷达图 (Radar Chart)' },
+            { value: '面积图', label: '面积图 (Area Chart)' },
+            { value: '热力图', label: '热力图 (Heatmap)' },
+            { value: '箱线图', label: '箱线图 (Boxplot)' },
+            { value: '漏斗图', label: '漏斗图 (Funnel Chart)' },
+            { value: '桑基图', label: '桑基图 (Sankey Diagram)' },
+            { value: '仪表盘', label: '仪表盘 (Gauge)' },
+            { value: '关系图', label: '关系图 (Graph)' },
             { value: '其他', label: '其他 (Other)' } // 允许用户自定义
           ]}
         />
@@ -253,7 +317,7 @@ const AddChart: React.FC = () => {
             rules={[{ required: true, message: '请上传至少一个文件!' }]}
             valuePropName="fileList" 
             getValueFromEvent={normFile} noStyle>
-              <Upload.Dragger name="files" action="/upload.do">
+              <Upload.Dragger name="files" action="/upload.do" maxCount={1}>
                 <p className="ant-upload-drag-icon">
                   <InboxOutlined />
                 </p>
@@ -291,9 +355,21 @@ const AddChart: React.FC = () => {
               title="分析结论：" 
               style={{ marginBottom: '20px' }}
               >
-              <div>
-              {chart?.genResult}
-              </div>
+            <div
+              dangerouslySetInnerHTML={{
+                __html: chart?.genResult.replace(/\\n/g, '<br />'),
+              }}
+              />
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <Spin spinning={submitting} size="default" tip="分析生成中..." />
+            </div>
+
           </ProCard>
         
 
@@ -304,22 +380,66 @@ const AddChart: React.FC = () => {
               style={{ width: '100%', height: '570px', overflow: 'visible'}}
             >
             <ProCard.TabPane key="tab1" tab="可视化图表"
-              style={{ width: '100%', height: '100%' }}
+              style={{ width: '100%', height: '100%'}}
             >
+              <div>
+
+                {option && (
+                  <img
+                    src="imgs/expand2.svg"
+                    onClick={showModal}
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      marginLeft: '16px',
+                      marginTop: '16px',
+                    }}
+                    alt="窗口显示"
+                    title="窗口显示"
+                  />
+                )}
+
+                {option && (
+                  <img
+                    src="imgs/download.svg"
+                    onClick={downloadImage}
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      marginLeft: '26px',
+                      marginTop: '16px',
+                    }}
+                    alt="下载图表"
+                    title="下载图表"
+                  />
+                )}
+              </div>
               <div
                 style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
                   width: '100%',
                   height: '100%',
-                  overflow: 'visible',
-                  zIndex: 1000
+                  position: 'relative',
+                  minHeight: '450px',
+                  marginTop: '16px',
                 }}
+                
               >
                 {/* 检查option对象是否存在，如果存在，则渲染图表 */}
-                {option && (<ReactECharts option={option} style={{ width:'100%', height: '100%' }}/>)}
+                {option && 
+                (<ReactECharts 
+                ref={chartRef}
+                option={option} 
+                style={{ width: '100%', height: '100%', minheight: '400px',
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                }}/>)}
+              
               </div>
+               {/* 按钮触发 Modal */}
+            
+              
             </ProCard.TabPane>
 
             <ProCard.TabPane key="tab2" tab="EchartsJS代码">
@@ -335,14 +455,14 @@ const AddChart: React.FC = () => {
                   style={coy}
                   customStyle={{
                     width: '100%',
-                    height: '400px',
+                    height: '450px',
                     backgroundColor: 'rgba(255, 255, 255, 0.95)', // 半透明背景
                     border: '1px solid #ddd',
                     borderRadius: '8px', // 增加圆角
                     padding: '0px',
                   }}
                   >
-                    {formattedCode}
+                    {formatCode(code)}
                   </SyntaxHighlighter>
 
                 <Button
@@ -350,7 +470,7 @@ const AddChart: React.FC = () => {
                   type="primary"
                   style={{ marginTop: '16px', marginBottom: '16px' }}
                 >
-                  复制Echarts代码
+                  复制代码
                 </Button>
               </div>
             </ProCard.TabPane>
@@ -360,6 +480,32 @@ const AddChart: React.FC = () => {
       
       </Col>
     </Row>
+
+    {/* 悬浮窗口 Modal */}
+    <Modal
+        title=""
+        visible={isModalVisible}
+        onCancel={handleCancel}
+        footer={null}
+        width={800}
+        height={600}
+        centered
+        bodyStyle={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: 'auto', // Modal内容高度自适应
+          padding: 0,
+        }}
+      >
+        {/* ECharts 图表 */}
+        <ReactECharts
+          option={option}
+          style={{ 
+            width: '100%', height: '100%px', minHeight: '500px'
+          }} 
+        />
+      </Modal>
 
   
     </div>

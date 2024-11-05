@@ -31,14 +31,14 @@ export default [
   //   component: './User/Register',
   // },
   {
-    path: '/welcome',
-    name: '主页',
+    path: '/mycharts',
+    name: '我的图表',
     icon: 'home',
-    component: './Welcome',
+    component: './MyCharts',
   },
   {
-    path: '/addChart',
-    name: '开始分析',
+    path: '/addchart',
+    name: '新建分析',
     icon: 'PlayCircle',
     component: './AddChart',
   },
@@ -67,7 +67,7 @@ export default [
   },
   {
     path: '/',
-    redirect: '/welcome',
+    redirect: '/mycharts',
   },
   {
     path: '*',

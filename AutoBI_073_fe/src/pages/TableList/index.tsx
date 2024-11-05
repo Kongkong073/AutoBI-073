@@ -12,9 +12,10 @@ import {
 } from '@ant-design/pro-components';
 import { FormattedMessage, useIntl } from '@umijs/max';
 import { Button, Drawer, Input, message } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
+import { listMyChartByPageUsingPost } from '@/services/AutoBI-073/chartController';
 
 /**
  * @en-US Add node
@@ -106,6 +107,34 @@ const TableList: React.FC = () => {
    * @zh-CN 国际化配置
    * */
   const intl = useIntl();
+
+  const [chartList, setChartList] = useState<API.Chart[]>();
+  const [total, setTotal] = useState<number>(0);
+
+  const initialSearchParam = {
+    pageSize: 12,
+  }
+  const [searchParam, setSearchParam] = useState<API.ChartQueryRequest>({...initialSearchParam});
+  
+
+  const loadData = async() => {
+    try {
+      const res = await listMyChartByPageUsingPost(searchParam); 
+      if (res.data){
+        setChartList(res.data.records ?? []);
+        setTotal(res.data.total ?? 0);
+      }else {
+        message.error ("获取历史记录失败!")
+      }
+    } catch (e: any) {
+      message.error("获取历史记录失败: " + e.message)
+    }
+    
+  }
+  
+  useEffect(() =>{
+    loadData();
+  }, [searchParam])
 
   const columns: ProColumns<API.RuleListItem>[] = [
     {
