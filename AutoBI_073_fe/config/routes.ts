@@ -60,10 +60,10 @@ export default [
     ],
   },
   {
-    name: '历史生成',
-    icon: 'ClockCircle',
-    path: '/list',
-    component: './TableList',
+    name: '编辑图表',
+    icon: 'edit',
+    path: '/editchart',
+    component: './EditChart',
   },
   {
     path: '/',

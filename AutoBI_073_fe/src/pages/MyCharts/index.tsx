@@ -153,7 +153,7 @@ const MyCharts: React.FC = () => {
 
     <div
         style={{
-            backgroundColor: '#eee',
+            // backgroundColor: '#eee',
             // backgroundColor: 'transparent',
             margin: -24,
             padding: 24,
@@ -256,6 +256,7 @@ const MyCharts: React.FC = () => {
             render: (text, row) => {
                 return (
                     <div>
+                        <img src="imgs/edit.svg" onClick={() => handleCopy(row.echartsJsCode)} style={{width: '20px',  height: '20px', marginRight: '10px'}} alt="编辑图表" title='编辑图表'/> 
                         <img src="imgs/copy-one.svg" onClick={() => handleCopy(row.echartsJsCode)} style={{width: '20px',  height: '20px', marginRight: '10px'}} alt="复制代码" title='复制代码'/> 
                         <img src="imgs/zoom-in.svg" onClick={() => showModal(row.genChart)} style={{width: '20px',  height: '20px', marginRight: '10px'}} alt="放大" title='放大'/> 
                         <img src="imgs/preview-open.svg" onClick={() => showDetail(row.goal, row.genResult, row.createTime)} style={{width: '20px',  height: '20px', marginRight: '10px'}} alt="查看" title='查看详细信息'/>
