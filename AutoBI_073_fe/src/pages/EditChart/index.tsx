@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { genChartByAiUsingPost } from '@/services/AutoBI-073/chartController';
 import React from 'react';
 import '@/pages/User/CSS/login.css';
@@ -20,12 +20,20 @@ import 'codemirror/lib/codemirror.css';
 import 'codemirror/mode/javascript/javascript';
 import 'codemirror/theme/idea.css';
 import '@/pages/EditChart/index.css';
+import { useLocation } from 'react-router-dom';
 
 const EditChart: React.FC = () => {
+  const location = useLocation();
 
   const [inputCode, setInputCode] = useState('');
   const [chartOption, setChartOption] = useState(null);
   const chartRef = useRef(null);
+  useEffect(() => {
+    // 如果存在传递的数据，设置为代码框的内容
+    if (location.state && location.state.code) {
+      setInputCode(location.state.code);
+    }
+  }, [location.state]);
 
   const handleRun = () => {
     try {
@@ -81,8 +89,10 @@ const EditChart: React.FC = () => {
             style={{ height: '100%',  display: 'flex', padding: '0px' }}
             gutter={20}
             bodyStyle={{ padding: '0px' }} 
+ 
         >
-            <ProCard  colSpan="50%"
+            <ProCard 
+             colSpan="46%"
               style={{
                 flex: 1,
                 height: '100%',
@@ -93,6 +103,7 @@ const EditChart: React.FC = () => {
                 justifyContent: 'space-between',
               }}
               bodyStyle={{ padding: '10px' }}
+              
             >
                 <div>
 

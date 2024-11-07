@@ -25,10 +25,7 @@ const AddChart: React.FC = () => {
     // 提交中的状态，默认未提交
     const [submitting, setSubmitting] = useState<boolean>(false);
     const [option, setOption] = useState<any>("");
-    const code = (chart?.genJsEchartCode || "")
-    .replace(/\\n/g, "")          
-    .replace(/\s+/g, " ")         
-    .replace(/\"/g, "\"");
+    const [code,setCode] = useState<string|undefined>("");
     const [isCustom, setIsCustom] = useState(false);
     const [customValue, setCustomValue] = useState("");
     const [selectedValue, setSelectedValue] = useState(null);
@@ -77,32 +74,14 @@ const AddChart: React.FC = () => {
   
     const handleCustomInputChange = (e) => {
       const value = e.target.value;
-      if (value.length <= 20) {
+      if (value.length <= 30) {
         setCustomValue(value);
       }
     };
 
 
 
-  // // 使用 prettier 格式化 JavaScript 代码
-    // let formattedCode = '';
-    // console.log('code:', code, typeof code);
-    // if (code && typeof code === 'string') {
-    //   try {
-    //     formattedCode = prettier.format(code, {
-    //       parser: 'babel',
-    //       plugins: [parserBabel],
-    //     });
-    //     console.log('formattedCode: ', formattedCode);
-    //   } catch (error) {
-    //     console.error('Prettier format failed:', error);
-    //     message.error('代码格式化失败，请检查代码格式');
-    //   }
-    // } else {
-    //   console.warn('Code is empty or not a valid string');
-    // }
-
-    const formatCode = (code: string) => {
+    const formatCode = (code: string|undefined) => {
       if (code && typeof code === 'string') {
         try {
           return prettier.format(code, {
@@ -115,7 +94,7 @@ const AddChart: React.FC = () => {
           return code; // 如果格式化失败，返回空字符串
         }
       } else {
-        //console.warn('Code is empty or not a valid string');
+        console.warn('Code is empty or not a valid string');
         return ''; // 如果code为空或非字符串，返回空字符串
       }
     };
@@ -123,12 +102,12 @@ const AddChart: React.FC = () => {
 
       // 处理复制操作
     const handleCopy = () => {
-      if (formattedCode.length === 0) {
+      if (formatCode(code).length === 0) {
         message.error('无有效代码可复制');
         return;
       }
 
-      navigator.clipboard.writeText(formattedCode)
+      navigator.clipboard.writeText(formatCode(code))
         .then(() => {
           message.success('代码已复制到剪贴板');
         })
@@ -155,7 +134,8 @@ const AddChart: React.FC = () => {
     setSubmitting(true);
     setChart(undefined);
     setOption(undefined);
-
+    setCode(undefined);
+    
     if (selectedValue === '其他') {
       values.chartType = customValue;  // 将 customValue 动态赋值为 chartType
     } else {
@@ -170,36 +150,84 @@ const AddChart: React.FC = () => {
     console.log(params)
     console.log(values.dragger[0])
 
+    // try {
+    //   // 需要取到上传的原始数据file→file→originFileObj(原始数据)
+    //   const res = await genChartByAiUsingPost(params, {}, values.dragger[0].originFileObj);
+    //   // 正常情况下，如果没有返回值就分析失败，有，就分析成功
+    //   if (!res?.data) {
+    //     message.error('分析失败');
+    //   } else {
+    //     message.success('分析成功');  
+    //     setChart(res.data);
+    //     setCode((res.data.genJsEchartCode?.toString() || '')
+    //     .replace(/\\n/g, "")          
+    //     .replace(/\s+/g, " ")         
+    //     .replace(/\"/g, "\""));
+    //     // 解析成对象，为空则设为空字符串
+    //     // const chartOption = JSON.parse(JSON.parse(res.data.genChart ?? ''));
+    //     console.info(code);
+    //     const formattedCode2 = formatCode(code);
+    //     console.info(formattedCode2);
+    //     const chartOption = new Function('return ' + formattedCode2)();
+    //     console.log("chartOption: ", chartOption);
+    //     if (typeof chartOption !== 'object' && chartOption === null) {
+    //       message.error('图表代码解析错误')
+    //     } else {
+    //       // 从后端得到响应结果之后，把响应结果设置到图表状态里
+    //       chartOption.grid = chartOption.grid || { left: '15%', right: '15%', top: '10%', bottom: '10%' };
+    //       setOption(chartOption);
+          
+    //     }
+    //   }  
+    // // 异常情况下，提示分析失败+具体失败原因
+    // } catch (e: any) {
+    //   message.error('分析失败,' + e.message);
+    // }
+    // 当结束提交，把submitting设置为false
+    
     try {
-      // 需要取到上传的原始数据file→file→originFileObj(原始数据)
+      // 获取上传的文件对象
       const res = await genChartByAiUsingPost(params, {}, values.dragger[0].originFileObj);
-      // 正常情况下，如果没有返回值就分析失败，有，就分析成功
+  
+      // 检查返回的数据
       if (!res?.data) {
         message.error('分析失败');
       } else {
         message.success('分析成功');  
-        // 解析成对象，为空则设为空字符串
-        const chartOption = JSON.parse(JSON.parse(res.data.genChart ?? ''));
-        console.log("chartOption: ", chartOption);
-        // 如果为空，则抛出异常，并提示'图表代码解析错误'
-        if (!chartOption) {
-          // throw new Error('图表代码解析错误')
-          message.error('图表代码解析错误')
-        // 如果成功
-        } else {
-          // 从后端得到响应结果之后，把响应结果设置到图表状态里
-          setChart(res.data);
-          // 调整图表边距，避免被裁减
-          chartOption.grid = chartOption.grid || { left: '15%', right: '15%', top: '10%', bottom: '10%' };
-          setOption(chartOption);
-
+        setChart(res.data);
+  
+        // 处理返回的代码字符串
+        const rawCode = (res.data.genJsEchartCode?.toString() || '')
+          .replace(/\\n/g, "")
+          .replace(/\s+/g, " ")
+          .replace(/\"/g, "\"");
+  
+        setCode(rawCode);
+  
+        // 格式化代码
+        const formattedCode = formatCode(rawCode);
+        console.info(formattedCode);
+  
+        try {
+          // 将字符串解析为对象
+          const chartOption = new Function('return ' + formattedCode)();
+          console.log("chartOption: ", chartOption);
+  
+          if (typeof chartOption !== 'object' || chartOption === null) {
+            message.error('图表代码解析错误');
+          } else {
+            // 设置图表的 grid 属性并更新 option
+            chartOption.grid = chartOption.grid || { left: '15%', right: '15%', top: '10%', bottom: '10%' };
+            setOption(chartOption);
+          }
+        } catch (parseError) {
+          console.error("解析 chartOption 出错:", parseError);
+          message.error("图表代码解析错误");
         }
-      }  
-    // 异常情况下，提示分析失败+具体失败原因
+      }
     } catch (e: any) {
       message.error('分析失败,' + e.message);
     }
-    // 当结束提交，把submitting设置为false
     setSubmitting(false);
   };  
   
@@ -245,24 +273,6 @@ const AddChart: React.FC = () => {
           <Input placeholder="请输入图表名称" />
       </Form.Item>
 
-      {/* 图表类型是非必填，所以不做校验 */}
-      {/* <Form.Item
-        name="chartType"
-        label="图表类型"
-        >
-        <Select
-        placeholder="请选择图表类型"
-        defaultValue={"折线图"}
-        options={[
-          { value: '饼图', label: '饼图' },
-          { value: '折线图', label: '折线图' },
-          { value: '柱状图', label: '柱状图' },
-          { value: '堆叠图', label: '堆叠图' },
-          { value: '散点图', label: '散点图' },
-          { value: '雷达图', label: '雷达图' },
-        ]}
-        />
-      </Form.Item> */}
       <Form.Item label="图表类型" name="chartType">
         <Select
           placeholder="请选择图表类型"
@@ -290,7 +300,7 @@ const AddChart: React.FC = () => {
             placeholder="请输入自定义图表类型"
             value={customValue}
             onChange={handleCustomInputChange}
-            maxLength={20}
+            maxLength={30}
             style={{ marginTop: '8px' }}
           />
         )}
