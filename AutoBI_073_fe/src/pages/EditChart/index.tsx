@@ -3,8 +3,8 @@ import { genChartByAiUsingPost } from '@/services/AutoBI-073/chartController';
 import React from 'react';
 import '@/pages/User/CSS/login.css';
 import TextArea from 'antd/es/input/TextArea';
-import { Button, Form, Input, Select, Space, Upload, Row, Col, Modal, Spin, Typography } from 'antd';
-import { CaretRightOutlined, DownloadOutlined, InboxOutlined } from '@ant-design/icons';
+import { Button, Form, Input, Select, Space, Upload, Row, Col, Modal, Spin, Typography, notification } from 'antd';
+import { CaretRightOutlined, DownloadOutlined, EditOutlined, InboxOutlined } from '@ant-design/icons';
 import { message } from 'antd/lib';
 import ReactECharts from 'echarts-for-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -21,13 +21,41 @@ import 'codemirror/mode/javascript/javascript';
 import 'codemirror/theme/idea.css';
 import '@/pages/EditChart/index.css';
 import { useLocation } from 'react-router-dom';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const EditChart: React.FC = () => {
   const location = useLocation();
-
   const [inputCode, setInputCode] = useState('');
   const [chartOption, setChartOption] = useState(null);
   const chartRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      notification.destroy();
+    };
+  }, [location.pathname]);
+  useEffect(() => {
+    notification.open({
+      message: '编辑Echarts图表',
+      description: (
+        <div>
+          <p style={{ display: 'flex', alignItems: 'center', margin: 0 }}>
+          <EditOutlined  style={{ marginRight: 8, color: '#52C41A' }} />
+            <span style={{ marginLeft: 4 }}>代码框中输入JS代码</span>
+          </p>
+        </div>
+      ),
+      placement: 'topRight',
+      duration: 3,
+      style: {
+        width: 300,
+        border: '1px solid #52C41A',
+        borderRadius: 8,
+        // boxShadow: '0 4px 4px #52C41A',
+      },
+    });
+  }, []);
+
   useEffect(() => {
     // 如果存在传递的数据，设置为代码框的内容
     if (location.state && location.state.code) {
@@ -80,7 +108,7 @@ const EditChart: React.FC = () => {
 
 
   return (
-    <div style={{ height: '92vh', overflow: 'auto' }} >
+    <div style={{ height: '92vh', overflow: 'auto'}} >
         <ProCard
             title="编辑图表"
             // split={responsive ? 'horizontal' : 'vertical'}
@@ -172,7 +200,9 @@ const EditChart: React.FC = () => {
             >
               <div >
               {chartOption && 
-                (<ReactECharts 
+                (
+                  <ErrorBoundary>
+                     <ReactECharts 
                   ref={chartRef}
                   option={chartOption} 
                 style={{ width: '90%', height: '80%',minheight: '60vh',
@@ -180,7 +210,9 @@ const EditChart: React.FC = () => {
                           top: '50%',
                           left: '48%',
                           transform: 'translate(-50%, -50%)',
-                }}/>)}
+                }}/>
+                  </ErrorBoundary>              
+                )}
               </div>
               
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

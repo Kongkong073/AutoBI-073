@@ -3,14 +3,7 @@ import { login } from '@/services/ant-design-pro/api';
 import { getFakeCaptcha } from '@/services/ant-design-pro/login';
 import { useEffect } from 'react';
 import { listChartByPageUsingPost } from '@/services/AutoBI-073/chartController';
-import {
-  AlipayCircleOutlined,
-  LockOutlined,
-  MobileOutlined,
-  TaobaoCircleOutlined,
-  UserOutlined,
-  WeiboCircleOutlined,
-} from '@ant-design/icons';
+import { LockOutlined, MobileOutlined, UserOutlined } from '@ant-design/icons';
 import {
   LoginForm,
   ProFormCaptcha,
@@ -18,13 +11,13 @@ import {
   ProFormText,
 } from '@ant-design/pro-components';
 import { FormattedMessage, history, SelectLang, useIntl, useModel, Helmet } from '@umijs/max';
-import { Alert, message, Tabs } from 'antd';
+import { Alert, message, notification, Tabs } from 'antd';
 import Settings from '../../../../config/defaultSettings';
 import React, { useState } from 'react';
 import { flushSync } from 'react-dom';
 import { createStyles } from 'antd-style';
 import '@/pages/User/CSS/login.css';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { getLoginUserUsingGet, userLoginUsingPost } from '@/services/AutoBI-073/userController';
 import { ConfigProvider } from 'antd';
 
@@ -65,17 +58,6 @@ const useStyles = createStyles(({ token }) => {
   };
 });
 
-// const ActionIcons = () => {
-//   const { styles } = useStyles();
-
-//   return (
-//     <>
-//       <AlipayCircleOutlined key="AlipayCircleOutlined" className={styles.action} />
-//       <TaobaoCircleOutlined key="TaobaoCircleOutlined" className={styles.action} />
-//       <WeiboCircleOutlined key="WeiboCircleOutlined" className={styles.action} />
-//     </>
-//   );
-// };
 
 const Lang = () => {
   const { styles } = useStyles();
@@ -87,21 +69,6 @@ const Lang = () => {
   );
 };
 
-// const LoginMessage: React.FC<{
-//   content: string;
-// }> = ({ content }) => {
-//   return (
-//     <Alert
-//       style={{
-//         marginBottom: 24,
-//       }}
-//       message={content}
-//       type="error"
-//       showIcon
-//     />
-//   );
-// };
-
 
 const Login: React.FC = () => {
   const [userLoginState, setUserLoginState] = useState<API.LoginResult>({});
@@ -109,7 +76,38 @@ const Login: React.FC = () => {
   const { initialState, setInitialState } = useModel('@@initialState');
   const { styles } = useStyles();
   const intl = useIntl();
+  const location = useLocation();
   
+  useEffect(() => {
+    return () => {
+      notification.destroy();
+    };
+  }, [location.pathname]);
+  
+  useEffect(() => {
+    notification.open({
+      message: '游客账号',
+      description: (
+        <div>
+          <p style={{ display: 'flex', alignItems: 'center', margin: 0 }}>
+            <UserOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+            <strong>用户名:</strong> <span style={{ marginLeft: 4 }}>client</span>
+          </p>
+          <p style={{ display: 'flex', alignItems: 'center', margin: 0, marginTop: 8 }}>
+            <LockOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+            <strong>密码:</strong> <span style={{ marginLeft: 4 }}>12345678</span>
+          </p>
+        </div>
+      ),
+      placement: 'topRight',
+      duration: 0,
+      style: {
+        width: 300,
+        borderRadius: 8,
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+      },
+    });
+  }, []);
 
   useEffect(()=>{
     listChartByPageUsingPost({}).then(res => {
@@ -244,7 +242,7 @@ const Login: React.FC = () => {
   //                 }}
   //                 placeholder={intl.formatMessage({
   //                   id: 'pages.login.username.placeholder',
-  //                   defaultMessage: '用户名 (kong)',
+  //                   defaultMessage: '用户名',
   //                 })}
   //                 rules={[
   //                   {
@@ -266,7 +264,7 @@ const Login: React.FC = () => {
   //                 }}
   //                 placeholder={intl.formatMessage({
   //                   id: 'pages.login.password.placeholder',
-  //                   defaultMessage: '请输入密码 (12345678)',
+  //                   defaultMessage: '请输入密码',
   //                 })}
   //                 rules={[
   //                   {
@@ -392,6 +390,8 @@ const Login: React.FC = () => {
   //     </div>
   //     <Footer />
   //   </div>
+  // );
+  
   return (
     <ConfigProvider
       theme={{
@@ -460,7 +460,7 @@ const Login: React.FC = () => {
                   }}
                   placeholder={intl.formatMessage({
                     id: 'pages.login.username.placeholder',
-                    defaultMessage: '用户名 (kong)',
+                    defaultMessage: '用户名',
                   })}
                   rules={[
                     {
@@ -482,7 +482,7 @@ const Login: React.FC = () => {
                   }}
                   placeholder={intl.formatMessage({
                     id: 'pages.login.password.placeholder',
-                    defaultMessage: '请输入密码 (12345678)',
+                    defaultMessage: '请输入密码',
                   })}
                   rules={[
                     {

@@ -1,7 +1,7 @@
 import { Button, Divider, Drawer, Input, message, Space } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import { listMyChartByPageUsingPost } from '@/services/AutoBI-073/chartController';
-import { ProFormRadio, ProList, QueryFilter, ProFormText, ProFormSelect, ProFormDatePicker, ProCard } from '@ant-design/pro-components';
+import { ProFormRadio, ProList, QueryFilter, ProFormText, ProFormSelect, ProFormDatePicker, ProCard} from '@ant-design/pro-components';
 import { Tag } from 'antd/lib';
 import { ControlOutlined, EllipsisOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
@@ -11,6 +11,7 @@ import parserBabel from 'prettier/parser-babel';
 import Modal from 'antd/es/modal/Modal';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const MyCharts: React.FC = () => {
 
@@ -32,7 +33,11 @@ const MyCharts: React.FC = () => {
             setTotal(res.data.total ?? 0);
             console.log(searchParam);
         }else {
-            message.error ("获取历史记录失败!")
+            if(res.code){
+                message.error (res.message)
+            }else{
+                message.error ("获取历史记录失败!")
+            }
         }
         } catch (e: any) {
         message.error("获取历史记录失败: " + e.message)
@@ -191,74 +196,17 @@ const MyCharts: React.FC = () => {
               }
       };
 
-    //   const [otherChartType, setOtherChartType] = useState<string>();
-    //   const handelOtherChartType = (value: string) => {
-    //     if (value !== '折线图' && value !=='柱状图' && value !== '饼图' &&  value !== '散点图' && value !== '雷达图'
-    //         && value !== '面积图' && value !=='热力图' && value !=='箱线图' &&  value !== '漏斗图' && value !== '桑基图'
-    //         && value !== '仪表盘' && value !=='关系图') {
-    //             setOtherChartType(value);
-    //         }
-    //   }
-
   
-    //   const ChartQueryFilter = () => (
-    //     <QueryFilter
-    //     defaultCollapsed={false}
-    //       onFinish={async (values) => {
-    //         // 将表单的值合并到 searchParam 中，并触发查询
-    //         setSearchParam({ ...searchParam, ...values });
-    //       }}
-    //       onReset={() => {
-    //         // 重置查询条件
-    //         setSearchParam(initialSearchParam);
-    //       }}
-    //     >
-    //       <ProFormSelect
-    //         name="chartType"
-    //         label="图表类型"
-    //         placeholder="请选择图表类型"
-    //         options={[
-    //             { value: '折线图', label: '折线图 (Line Chart)' },
-    //             { value: '柱状图', label: '柱状图 (Bar Chart)' },
-    //             { value: '饼图', label: '饼图 (Pie Chart)' },
-    //             { value: '散点图', label: '散点图 (Scatter Chart)' },
-    //             { value: '雷达图', label: '雷达图 (Radar Chart)' },
-    //             { value: '面积图', label: '面积图 (Area Chart)' },
-    //             { value: '热力图', label: '热力图 (Heatmap)' },
-    //             { value: '箱线图', label: '箱线图 (Boxplot)' },
-    //             { value: '漏斗图', label: '漏斗图 (Funnel Chart)' },
-    //             { value: '桑基图', label: '桑基图 (Sankey Diagram)' },
-    //             { value: '仪表盘', label: '仪表盘 (Gauge)' },
-    //             { value: '关系图', label: '关系图 (Graph)' },
-    //             { value: otherChartType, label: '其他 (Other)' },
-    //           ]}
-    //           onChange={handelOtherChartType}
-    //       />
-    //       <ProFormText
-    //         name="name"
-    //         label="图表名称"
-    //         placeholder="请输入名称"
-    //       />
-
-    //     <ProFormDatePicker
-    //         name="createTime"
-    //         label="创建时间"
-    //         placeholder="请选择日期"
-    //         fieldProps={{
-    //             format: 'YYYY-MM-DD',
-    //           }}
-    //     />
-    //     </QueryFilter>
-    //   );
-      
     return (
 
         
     <div
         style={{
             // backgroundColor: '#eee',
-            // backgroundColor: 'transparent',
-            margin: -24,
+            marginTop: -34,
+            marginBottom: -24,
+            marginLeft: 24,
+            marginRight: 24,
             padding: 24,
         }}
     >
@@ -328,24 +276,28 @@ const MyCharts: React.FC = () => {
             </QueryFilter>
         </ProCard>
         
-      <ProList<API.Chart>    
+      <ProList<API.Chart> 
         pagination={{
-          defaultPageSize: 10,
+          defaultPageSize: 12,
           showSizeChanger: false,
         }}
         showActions="hover"
         rowSelection={{}}
-        grid={{ gutter: 24, xs: 1,
+        grid={{gutter: 0, xs: 1,
             sm: 1,
             md: 1,
             lg: 2,
             xl: 2,
             xxl: 3, }}
-        onItem={(record: any) => {
+        onItem={(record: any) => {         
           return {
             onClick: () => {
               console.log(record);
             },
+            style: {
+               boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                width: 'calc(98%)',
+              },
           };
         }}
         metas={{
@@ -372,16 +324,16 @@ const MyCharts: React.FC = () => {
                     area: "geekblue", '面积图': "geekblue",
                     heatmap: "orange", '热力图': "orange",
                     boxplot: "cyan", '箱线图': "cyan",
-                    funnel: "magenta", '漏斗图': "magenta",
+                    funnel: "gray", '漏斗图': "gray",
                     sankey: "lime", '桑基图': "lime",
                     gauge: "red", '仪表盘': "red",
-                    graph: "gray", '关系图': "gray",
+                    graph: "magenta", '关系图': "magenta",
                     "其他": "default", // 用于“其他”或自定义类型
                   };
                   const color = row.chartType ? colorMap[row.chartType] || "default" : "default";
                   return (
                     <Space size={0}>
-                      <Tag color={color}>{row.chartType || "未知类型"}</Tag>
+                      <Tag color={color}>{row.chartType || "默认"}</Tag>
                     </Space>
                   );
               },
@@ -394,25 +346,22 @@ const MyCharts: React.FC = () => {
           content: {
             dataIndex: 'echartsJsCode', 
             render: (_, row) => {
+                let chartOption;
                 try {
                     const clearCode = (row.echartsJsCode || "")
                             .replace(/\\n/g, "")          
                             .replace(/\s+/g, " ")         
                             .replace(/\"/g, "\"");
                     formattedCode2 = formatCode(clearCode);
-                  } catch (error) {
-                  }
-                let chartOption;
-                try {
-                // chartOption = row.genChart ? JSON.parse(JSON.parse(row.genChart ?? '')) : null;
-                chartOption = new Function('return ' + formattedCode2)();
-                if (chartOption){
-                    chartOption.title = undefined;
-                    chartOption.grid = chartOption.grid || { left: '15%', right: '15%', top: '10%', bottom: '10%' };
-                }
+                    // chartOption = row.genChart ? JSON.parse(JSON.parse(row.genChart ?? '')) : null;
+                    chartOption = new Function('return ' + formattedCode2)();
+                    if (chartOption){
+                        chartOption.title = undefined;
+                        chartOption.grid = chartOption.grid || { left: '15%', right: '15%', top: '10%', bottom: '10%' };
+                    }
                 } catch (error) {
-                console.error("解析错误:", error);
-                chartOption = null;
+                    console.error("解析错误:", error);
+                    chartOption = null;
                 }
 
                 return (
@@ -420,9 +369,11 @@ const MyCharts: React.FC = () => {
                 style={{  display: 'flex', justifyContent: 'center', alignItems: 'center', height: '280px', width:'100%' }}
                 >
                     {chartOption && (
-                    <ReactECharts
+                        <ErrorBoundary>
+                            <ReactECharts
                         option={chartOption}
                         style={{  width: '100%', height: '280px' }}/>
+                        </ErrorBoundary>
                     )}
                 </div>
                 );
@@ -467,7 +418,10 @@ const MyCharts: React.FC = () => {
         }}
         >
         {modalChartOption && (
-            <ReactECharts option={modalChartOption} style={{ width: '100%', minHeight: '500px', margin: 20,}}/>
+            <ErrorBoundary>
+                <ReactECharts option={modalChartOption} style={{ width: '100%', minHeight: '500px', margin: 20,}}/>
+            </ErrorBoundary>
+
         )}
         </Modal>
 
@@ -485,7 +439,12 @@ const MyCharts: React.FC = () => {
           <strong>分析目标:</strong> {detailInfo.goal}
         </Typography.Paragraph>
         <Typography.Paragraph>
-          <strong>分析结论:</strong> {detailInfo.genResult}
+          <strong>分析结论:</strong> 
+          <div
+              dangerouslySetInnerHTML={{
+                __html:detailInfo.genResult.replace(/\\n/g, '<br />'),
+              }}
+              />
         </Typography.Paragraph>
         <Typography.Paragraph>
           <strong>创建时间:</strong> {detailInfo.createTime}

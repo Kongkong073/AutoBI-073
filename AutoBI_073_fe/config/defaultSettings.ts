@@ -7,18 +7,32 @@ const Settings: ProLayoutProps & {
   pwa?: boolean;
   logo?: string;
 } = 
+// {
+//   "navTheme": "light",
+//   "colorPrimary": "#52C41A",
+//   "layout": "side",
+//   "contentWidth": "Fluid",
+//   "fixedHeader": false,
+//   "fixSiderbar": true,
+//   "pwa": true,
+//   "logo": "/logo.svg",
+//   "token": {},
+//   "siderMenuType": "sub",
+//   "splitMenus": false,
+//   'title': 'AutoBI-073',
+// }
 {
   "navTheme": "light",
   "colorPrimary": "#52C41A",
-  "layout": "side",
+  "layout": "mix",
   "contentWidth": "Fluid",
-  "fixedHeader": false,
+  "fixedHeader": true,
   "fixSiderbar": true,
   "pwa": true,
   "logo": "/logo.svg",
   "token": {},
   "siderMenuType": "sub",
-  "splitMenus": false,
+  "splitMenus": true,
   'title': 'AutoBI-073',
 }
 // {

@@ -14,6 +14,7 @@ import parserBabel from 'prettier/parser-babel';
 import { Color } from 'antd/es/color-picker';
 import { Divider } from 'rc-menu';
 import { ProCard } from '@ant-design/pro-components';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 /**
  * 添加图表页面
@@ -189,6 +190,11 @@ const AddChart: React.FC = () => {
       // 获取上传的文件对象
       const res = await genChartByAiUsingPost(params, {}, values.dragger[0].originFileObj);
   
+      // if (res?.code){
+      //   message.error(res.message);
+      //   return;
+      // }
+
       // 检查返回的数据
       if (!res?.data) {
         message.error('分析失败');
@@ -306,28 +312,15 @@ const AddChart: React.FC = () => {
         )}
       </Form.Item>
 
-      {/* 文件上传 */}
-      {/* <Form.Item
-          name="fileObj"
-          label="原始数据"
-          rules={[{ required: true, message: '请上传至少一个文件!' }]}
-        > */}
-          {/* action:当你把文件上传之后，他会把文件上传至哪个接口。
-          这里肯定是调用自己的后端，先不用这个 */}
-          {/* <Upload name="file">
-            <Button icon={<UploadOutlined />}>上传 CSV 文件</Button>
-          </Upload>
-        </Form.Item> */}
-
           <Form.Item
           label="原始数据"
           >
-            <Form.Item 
+          <Form.Item 
             name="dragger" 
             rules={[{ required: true, message: '请上传至少一个文件!' }]}
             valuePropName="fileList" 
             getValueFromEvent={normFile} noStyle>
-              <Upload.Dragger name="files" action="/upload.do" maxCount={1}>
+              <Upload.Dragger name="files" action="/upload.do" maxCount={1} accept=".csv,.xls,.xlsx">
                 <p className="ant-upload-drag-icon">
                   <InboxOutlined />
                 </p>
@@ -436,15 +429,19 @@ const AddChart: React.FC = () => {
               >
                 {/* 检查option对象是否存在，如果存在，则渲染图表 */}
                 {option && 
-                (<ReactECharts 
-                ref={chartRef}
-                option={option} 
-                style={{ width: '100%', height: '100%', minheight: '400px',
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                }}/>)}
+                (
+                  <ErrorBoundary>
+                    <ReactECharts 
+                      ref={chartRef}
+                      option={option} 
+                      style={{ width: '100%', height: '100%', minheight: '400px',
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                    }}/>
+                  </ErrorBoundary>
+                )}
               
               </div>
                {/* 按钮触发 Modal */}

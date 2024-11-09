@@ -22,14 +22,7 @@ export default [
       },
     ],
   },
-
-
-  // {
-  //   // layout: false,
-  //   name: 'register',
-  //   path: '/user/register',
-  //   component: './User/Register',
-  // },
+  
   {
     path: '/mycharts',
     name: '我的图表',
