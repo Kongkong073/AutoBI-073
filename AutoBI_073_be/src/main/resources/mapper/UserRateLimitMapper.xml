@@ -2,27 +2,26 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.autoBI073.mapper.ChartMapper">
+<mapper namespace="com.autoBI073.mapper.UserRateLimitMapper">
 
-    <resultMap id="BaseResultMap" type="com.autoBI073.model.entity.Chart">
-            <id property="id" column="id" jdbcType="BIGINT"/>
-            <result property="name" column="name" jdbcType="VARCHAR"/>
-            <result property="goal" column="goal" jdbcType="VARCHAR"/>
-            <result property="chartData" column="chartData" jdbcType="VARCHAR"/>
-            <result property="chartType" column="chartType" jdbcType="VARCHAR"/>
-            <result property="echartsJsCode" column="echartsJsCode" jdbcType="VARCHAR"/>
-            <result property="genChart" column="genChart" jdbcType="VARCHAR"/>
-            <result property="genResult" column="genResult" jdbcType="VARCHAR"/>
-            <result property="userId" column="userId" jdbcType="BIGINT"/>
-            <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
-            <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
-            <result property="isDelete" column="isDelete" jdbcType="TINYINT"/>
+    <resultMap id="BaseResultMap" type="com.autoBI073.model.entity.UserRateLimit">
+            <id property="userId" column="user_id" jdbcType="BIGINT"/>
+            <result property="totalRemainingRequests" column="total_remaining_requests" jdbcType="INTEGER"/>
+            <result property="remainingRequestsPerDay" column="remaining_requests_per_day" jdbcType="INTEGER"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,`name`,goal,chartData,
-        chartType,`echartsJsCode`,genChart,genResult,
-        userId,createTime,updateTime,
-        isDelete
+        user_id,total_remaining_requests,
+        remaining_requests_per_day
     </sql>
+
+    <!-- 更新 daily_remaining_requests 的 SQL 语句 -->
+    <update id="resetDailyRemainingRequests">
+        UPDATE user_rate_limit
+        SET remaining_requests_per_day = CASE
+        WHEN total_remaining_requests >= #{dailyLimit} THEN #{dailyLimit}
+        ELSE total_remaining_requests
+        END
+    </update>
+
 </mapper>

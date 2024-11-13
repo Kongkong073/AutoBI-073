@@ -29,6 +29,21 @@ public class MyStringUtils {
         }
     }
 
+    public static String[] splitWithDelimiter2(String originalString, String delimiter1) {
+        if (originalString.startsWith("{") && originalString.endsWith("}")) {
+            originalString = originalString.substring(1, originalString.length() - 1);
+        }
+        int index1 = StrUtil.indexOf(originalString, delimiter1, 0, false);
+
+        if (index1 != -1) {
+            String part1 = StrUtil.sub(originalString, 0, index1); // part1
+            String part2 = StrUtil.sub(originalString, index1, originalString.length()); // part2
+            return new String[]{part1, part2};
+        } else {
+            return new String[]{originalString}; // 未找到分隔符时返回原字符串
+        }
+    }
+
     public static String extractContent(String input) {
         // 找到第一个冒号的位置
         int colonIndex = input.indexOf(":");
@@ -45,9 +60,14 @@ public class MyStringUtils {
         if (content.endsWith(",")) {
             content = content.substring(1, content.length() - 2).trim();
         }
-
         return content;
     }
 
+    public static String removeQuoteMark(String input) {
+        if (input.startsWith("\"") && input.endsWith("\"")){
+            return input.substring(1, input.length()-1);
+        }
+        return input;
+    }
 
 }

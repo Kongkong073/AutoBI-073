@@ -32,6 +32,7 @@ create table if not exists chart
     goal				 text null comment'分析目标',
     chartData		 text null comment'图表数据',
     chartType		 varchar(128) null comment'图表类型',
+    `echartJsCode`    text null comment '图表Echarts JS代码',
     genChart		 text null comment'生成的图表数据',
     genResult		 text null comment'生成的分析结论',
     userId			 bigint null comment'创建用户 id',
@@ -39,5 +40,11 @@ create table if not exists chart
     updateTime   datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
     isDelete     tinyint      default 0                 not null comment '是否删除'
 ) comment '图表信息表' collate = utf8mb4_unicode_ci;
+
+CREATE TABLE user_rate_limit (
+    userId bigint PRIMARY KEY COMMENT 'id',
+    totalRemainingRequests INT COMMENT '总共剩余请求数量' NOT NULL DEFAULT 200,
+    remainingRequestsPerDay INT COMMENT '每天剩余数量' NOT NULL DEFAULT 50
+);
 
 

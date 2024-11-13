@@ -10,6 +10,7 @@
             <result property="goal" column="goal" jdbcType="VARCHAR"/>
             <result property="chartData" column="chartData" jdbcType="VARCHAR"/>
             <result property="chartType" column="chartType" jdbcType="VARCHAR"/>
+            <result property="echartsJsCode" column="echartsJsCode" jdbcType="VARCHAR"/>
             <result property="genChart" column="genChart" jdbcType="VARCHAR"/>
             <result property="genResult" column="genResult" jdbcType="VARCHAR"/>
             <result property="userId" column="userId" jdbcType="BIGINT"/>
@@ -20,7 +21,7 @@
 
     <sql id="Base_Column_List">
         id,`name`,goal,chartData,
-        chartType,genChart,genResult,
+        chartType,`echartsJsCode`,genChart,genResult,
         userId,createTime,updateTime,
         isDelete
     </sql>

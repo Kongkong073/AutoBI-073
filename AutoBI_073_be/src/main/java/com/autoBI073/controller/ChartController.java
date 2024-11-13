@@ -1,11 +1,16 @@
 package com.autoBI073.controller;
 
+import cn.hutool.Hutool;
+import cn.hutool.core.io.FileUtil;
+import com.autoBI073.constant.Constants;
+
 import com.autoBI073.common.BaseResponse;
 import com.autoBI073.common.DeleteRequest;
 import com.autoBI073.common.ErrorCode;
 import com.autoBI073.common.ResultUtils;
 import com.autoBI073.constant.CommonConstant;
 import com.autoBI073.constant.UserConstant;
+import com.autoBI073.manager.RedisLimiterManager;
 import com.autoBI073.model.dto.chart.*;
 import com.autoBI073.model.vo.BiResponse;
 import com.autoBI073.service.ChartService;
@@ -36,6 +41,8 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * 帖子接口
@@ -63,8 +70,8 @@ public class ChartController {
 
     @Value("${openai.api.url}")
     private String apiUrl;
-
-    private final static Gson GSON = new Gson();
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
 
     // region 增删改查
 
@@ -189,12 +196,17 @@ public class ChartController {
         if (chartQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User loginUser = userService.getLoginUser(request);
+        User loginUser;
+        try{
+            loginUser = userService.getLoginUser(request);
+        }catch (BusinessException e){
+            return ResultUtils.error(e.getCode(), e.getMessage());
+        }
         chartQueryRequest.setUserId(loginUser.getId());
         long current = chartQueryRequest.getCurrent();
         long size = chartQueryRequest.getPageSize();
         // 限制爬虫
-        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+//        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
         Page<Chart> chartPage = chartService.page(new Page<>(current, size),
                 getQueryWrapper(chartQueryRequest));
         return ResultUtils.success(chartPage);
@@ -250,13 +262,19 @@ public class ChartController {
         Long userId = chartQueryRequest.getUserId();
         String sortField = chartQueryRequest.getSortField();
         String sortOrder = chartQueryRequest.getSortOrder();
+        Date createTime = chartQueryRequest.getCreateTime();
 
         queryWrapper.eq(id != null && id > 0, "id", id);
-        queryWrapper.eq(StringUtils.isNotBlank(name), "name", name);
+        queryWrapper.like(StringUtils.isNotBlank(name), "name", name);
         queryWrapper.eq(StringUtils.isNotBlank(goal), "goal", goal);
         queryWrapper.eq(StringUtils.isNotBlank(chartType), "chartType", chartType);
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
         queryWrapper.eq("isDelete", false);
+        if (createTime != null) {
+            String formattedDate = new SimpleDateFormat("yyyy-MM-dd").format(createTime);
+            queryWrapper.like("DATE_FORMAT(createTime, '%Y-%m-%d')", formattedDate);
+        }
+
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
         return queryWrapper;
@@ -298,11 +316,25 @@ public class ChartController {
     @PostMapping("/gen")
     public BaseResponse<BiResponse> genChartByAi(@RequestPart("file") MultipartFile multipartFile,
                                              GenChartByAiRequest genChartByAiRequest, HttpServletRequest request){
+
+        // 登录校验
+        User loginUser;
+        try{
+            loginUser = userService.getLoginUser(request);
+        }catch (BusinessException e){
+            return ResultUtils.error(e.getCode(), e.getMessage());
+        }
+
+        //限流
+        try{
+            redisLimiterManager.checkRateLimit(loginUser.getId());
+        }catch (BusinessException e){
+            return ResultUtils.error(e.getCode(), e.getMessage());
+        }
+
         String name = genChartByAiRequest.getName();
         String goal = genChartByAiRequest.getGoal();
         String chartType = genChartByAiRequest.getChartType();
-
-        User loginUser = userService.getLoginUser(request);
 
         // 校验
         // 如果分析目标为空，就抛出请求参数错误异常，并给出提示
@@ -310,10 +342,21 @@ public class ChartController {
         // 如果名称不为空，并且名称长度大于100，就抛出异常，并给出提示
         ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
 
+        //校验
+        long size = multipartFile.getSize();
+        String originalFilename = multipartFile.getOriginalFilename();
+        ThrowUtils.throwIf(size > Constants.ONE_MB, ErrorCode.PARAMS_ERROR, "文件超过 1M");
+        String suffix = FileUtil.getSuffix(originalFilename);
+        ThrowUtils.throwIf(!Constants.validFileSuffixList.contains(suffix), ErrorCode.PARAMS_ERROR, "文件后缀非法");
+
+
         // 用户输入
         StringBuilder userInput = new StringBuilder();
-        userInput.append("数据说明和分析/生成目标：").append(goal).append("\n");
-        userInput.append("生成图表类型: ").append(chartType).append("\n");
+        userInput.append("数据说明和分析目标：").append(goal).append("\n");
+        if (StringUtils.isNotBlank(chartType)) {
+            // 就将分析目标拼接上“请使用”+图表类型
+            userInput.append("请使用" + chartType).append("\n");
+        }
 
         // 压缩后的数据（把multipartFile传进来，其他的东西先注释）
         String result = null;
@@ -325,59 +368,40 @@ public class ChartController {
         userInput.append("原始数据：").append(result).append("\n");
 
 
-
         // create a request
         ChatRequest request1 = new ChatRequest(model, userInput.toString());
 
         // call the API
         ChatResponse response = restTemplate.postForObject(apiUrl, request1, ChatResponse.class);
 
-
+        // 插入Chart表
         if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
-            String[] responses = MyStringUtils.splitWithDelimiter(response.getChoices().get(0).getMessage().getContent(), "\"JsEChartCode\"", "\"JsonEChartCode\"");
+//            String[] responses = MyStringUtils.splitWithDelimiter(response.getChoices().get(0).getMessage().getContent(), "\"JsEChartCode\"", "\"JsonEChartCode\"");
+            String[] responses = MyStringUtils.splitWithDelimiter2(response.getChoices().get(0).getMessage().getContent(), "\"JsEChartCode\"");
             Chart chart = new Chart();
             chart.setName(name);
             chart.setGoal(goal);
             chart.setChartData(result);
             chart.setChartType(chartType);
-            chart.setGenChart(MyStringUtils.extractContent(responses[2]));
+//            chart.setGenChart(MyStringUtils.extractContent(responses[2]));
             chart.setGenResult(MyStringUtils.extractContent(responses[0]));
+            chart.setEchartsJsCode(MyStringUtils.removeQuoteMark(MyStringUtils.extractContent(responses[1])));
             chart.setUserId(loginUser.getId());
             boolean saveResult = chartService.save(chart);
             ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
 
+            // 返回结果
             BiResponse biResponse = new BiResponse();
-            biResponse.setGenChart(MyStringUtils.extractContent(responses[2]));
+//            biResponse.setGenChart(MyStringUtils.extractContent(responses[2]));
             biResponse.setGenResult(MyStringUtils.extractContent(responses[0]));
-            biResponse.setGenJsEchartCode(MyStringUtils.extractContent(responses[1]));
+            biResponse.setGenJsEchartCode(MyStringUtils.removeQuoteMark(MyStringUtils.extractContent(responses[1])));
             biResponse.setChartId(chart.getId());
+            log.info(biResponse.toString());
             return ResultUtils.success(biResponse);
 //            return ResultUtils.success(responses[0] + "\\n" + responses[1] + "\\n" + responses[2]);
         } else {
             throw new RuntimeException("No structured response received from OpenAI API.");
         }
-//        // 读取到用户上传的 excel 文件，进行一个处理
-//        User loginUser = userService.getLoginUser(request);
-//        // 文件目录：根据业务、用户来划分
-//        String uuid = RandomStringUtils.randomAlphanumeric(8);
-//        String filename = uuid + "-" + multipartFile.getOriginalFilename();
-//        File file = null;
-//        try {
-//
-//            // 返回可访问地址
-//            return ResultUtils.success("");
-//        } catch (Exception e) {
-////            log.error("file upload error, filepath = " + filepath, e);
-//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
-//        } finally {
-//            if (file != null) {
-//                // 删除临时文件
-//                boolean delete = file.delete();
-//                if (!delete) {
-////                    log.error("file delete error, filepath = {}", filepath);
-//                }
-//            }
-//        }
     }
 
 

@@ -40,6 +40,11 @@ public class Chart implements Serializable {
     private String chartType;
 
     /**
+     * 图表类型
+     */
+    private String echartsJsCode;
+
+    /**
      * 生成的图表数据
      */
     private String genChart;

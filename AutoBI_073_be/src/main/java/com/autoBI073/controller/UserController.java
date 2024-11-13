@@ -7,6 +7,7 @@ import com.autoBI073.common.ResultUtils;
 import com.autoBI073.config.WxOpenConfig;
 import com.autoBI073.constant.UserConstant;
 import com.autoBI073.model.entity.User;
+import com.autoBI073.service.UserRateLimitService;
 import com.autoBI073.service.UserService;
 import com.autoBI073.service.impl.UserServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -51,6 +52,9 @@ public class UserController {
     private UserService userService;
 
     @Resource
+    private UserRateLimitService userRateLimitService;
+
+    @Resource
     private WxOpenConfig wxOpenConfig;
 
     // region 登录相关
@@ -73,6 +77,8 @@ public class UserController {
             return null;
         }
         long result = userService.userRegister(userAccount, userPassword, checkPassword);
+        // 添加限流信息
+        userRateLimitService.addUserRateLimit(result);
         return ResultUtils.success(result);
     }
 

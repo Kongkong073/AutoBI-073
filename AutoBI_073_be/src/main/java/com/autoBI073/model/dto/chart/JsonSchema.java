@@ -44,7 +44,7 @@ public class JsonSchema implements Serializable {
         public Schema() {
             required.add("analysisResult");
             required.add("JsEChartCode");
-            required.add("JsonEChartCode");
+//            required.add("JsonEChartCode");
         }
     }
     @Data
@@ -53,8 +53,8 @@ public class JsonSchema implements Serializable {
         private Type analysisResult = new Type("string");
         @JsonProperty("JsEChartCode")
         private Type JsEChartCode = new Type("string");
-        @JsonProperty("JsonEChartCode")
-        private Type JsonEChartCode = new Type("string");
+//        @JsonProperty("JsonEChartCode")
+//        private Type JsonEChartCode = new Type("string");
     }
 
     @Data

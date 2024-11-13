@@ -39,7 +39,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     /**
      * 盐值，混淆密码
      */
-    public static final String SALT = "yupi";
+    public static final String SALT = "auto";
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -75,6 +75,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             if (!saveResult) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
             }
+
             return user.getId();
         }
     }
