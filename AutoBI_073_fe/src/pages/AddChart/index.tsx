@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { genChartByAiUsingPost } from '@/services/AutoBI-073/chartController';
 import React from 'react';
 import '@/pages/User/CSS/login.css';
 import TextArea from 'antd/es/input/TextArea';
-import { Button, Form, Input, Select, Space, Upload, Row, Col, Modal, Spin, Typography } from 'antd';
+import { Button, Form, Input, Select, Space, Upload, Row, Col, Modal, Spin, Typography, Alert, Switch } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
 import { message } from 'antd/lib';
 import ReactECharts from 'echarts-for-react';
@@ -15,6 +15,7 @@ import { Color } from 'antd/es/color-picker';
 import { Divider } from 'rc-menu';
 import { ProCard } from '@ant-design/pro-components';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { showAvailableRequestsUsingGet } from '@/services/AutoBI-073/userRateLimitController';
 
 /**
  * 添加图表页面
@@ -32,6 +33,27 @@ const AddChart: React.FC = () => {
     const [selectedValue, setSelectedValue] = useState(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const chartRef = useRef(null);
+    const [totalLimit, setTotalLimit] = useState<number>(0);
+    const [dailyLimit, setDailyLimit] = useState<number>(0);
+
+    const loadUserRateLimit = async() => {
+      try {
+      const res = await showAvailableRequestsUsingGet(); 
+      if (res.data){
+        setDailyLimit(res.data.remainingRequestsPerDay?? 0);
+        setTotalLimit(res.data.totalRemainingRequests?? 0);
+      }else {
+        console.error("获取限流信息失败")
+      }
+      } catch (e: any) {
+        message.error("获取限流信息失败: " + e.message)
+      }
+      
+    }
+
+      useEffect(() =>{
+        loadUserRateLimit();
+      }, [chart]);
 
       // 下载图片方法
       const downloadImage = () => {
@@ -79,8 +101,6 @@ const AddChart: React.FC = () => {
         setCustomValue(value);
       }
     };
-
-
 
     const formatCode = (code: string|undefined) => {
       if (code && typeof code === 'string') {
@@ -190,10 +210,13 @@ const AddChart: React.FC = () => {
       // 获取上传的文件对象
       const res = await genChartByAiUsingPost(params, {}, values.dragger[0].originFileObj);
   
-      // if (res?.code){
-      //   message.error(res.message);
-      //   return;
-      // }
+      if (res?.code === 40100){
+        message.error(res.message);
+        return;
+      }else if (res?.code === 42900){
+        message.error(res.message);
+        return;
+      }
 
       // 检查返回的数据
       if (!res?.data) {
@@ -236,6 +259,12 @@ const AddChart: React.FC = () => {
     }
     setSubmitting(false);
   };  
+
+  const [visible, setVisible] = useState(true);
+
+  const handleClose = () => {
+    setVisible(false);
+  };
   
 
   return (
@@ -247,6 +276,7 @@ const AddChart: React.FC = () => {
       <Col span={12}
       xs={24} sm={24} md={12} lg={12} xl={12}
       >
+
         <ProCard title={
             <Typography.Title level={4} style={{ margin: 0 }}>
             用户输入
@@ -346,8 +376,12 @@ const AddChart: React.FC = () => {
           </Space>
         </Form.Item>
           </Form>
-
         </ProCard>
+
+        <div>
+  {/* <div style={{ color: 'gray', marginTop: '5px' }}>一共剩余{totalLimit} 次</div> */}
+  <div style={{ color: 'gray', marginTop: '5px', marginLeft: '5px' }}>今日剩余 {dailyLimit} 次</div>
+</div>
       </Col>
 
       <Col span={12}

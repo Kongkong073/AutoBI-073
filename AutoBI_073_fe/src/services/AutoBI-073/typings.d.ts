@@ -83,6 +83,12 @@ declare namespace API {
     message?: string;
   };
 
+  type BaseResponseUserLimitVO_ = {
+    code?: number;
+    data?: UserLimitVO;
+    message?: string;
+  };
+
   type BaseResponseUserVO_ = {
     code?: number;
     data?: UserVO;
@@ -91,7 +97,6 @@ declare namespace API {
 
   type BiResponse = {
     chartId?: number;
-    genChart?: string;
     genJsEchartCode?: string;
     genResult?: string;
   };
@@ -364,6 +369,11 @@ declare namespace API {
     userAvatar?: string;
     userName?: string;
     userRole?: string;
+  };
+
+  type UserLimitVO = {
+    remainingRequestsPerDay?: number;
+    totalRemainingRequests?: number;
   };
 
   type UserLoginRequest = {
