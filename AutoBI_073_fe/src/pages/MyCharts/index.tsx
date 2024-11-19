@@ -1,11 +1,10 @@
-import { Button, Divider, Drawer, Input, message, Space } from 'antd';
+import { Affix, App, Button, Divider, Drawer, Input, message, Space, Typography } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import { listMyChartByPageUsingPost } from '@/services/AutoBI-073/chartController';
+import { deleteSelectedChartUsingPost, listMyChartByPageUsingPost } from '@/services/AutoBI-073/chartController';
 import { ProFormRadio, ProList, QueryFilter, ProFormText, ProFormSelect, ProFormDatePicker, ProCard} from '@ant-design/pro-components';
 import { Tag } from 'antd/lib';
-import { ControlOutlined, EllipsisOutlined } from '@ant-design/icons';
+import { ControlOutlined, DeleteFilled, DeleteOutlined, DeleteTwoTone, EllipsisOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
-import Typography from 'antd/es/typography/Typography';
 import prettier from 'prettier/standalone';
 import parserBabel from 'prettier/parser-babel';
 import Modal from 'antd/es/modal/Modal';
@@ -25,6 +24,7 @@ const MyCharts: React.FC = () => {
     const [searchParam, setSearchParam] = useState<API.ChartQueryRequest>({...initialSearchParam});
     const [filteredChartList, setFilteredChartList] = useState<API.Chart[]>([]);
 
+    //加载chart数据
     const loadData = async() => {
         try {
         const res = await listMyChartByPageUsingPost(searchParam); 
@@ -49,6 +49,7 @@ const MyCharts: React.FC = () => {
         loadData();
     }, [searchParam]);
 
+    //格式化JS code
     const formatCode = (code: string) => {
         if (code && typeof code === 'string') {
         try {
@@ -67,6 +68,7 @@ const MyCharts: React.FC = () => {
     };
 
       
+    // 当 chartList 更新时，重新计算 filteredChartList 
     useEffect(() => {
         const newFilteredChartList = (chartList || []).filter((row) => {
           try {
@@ -86,35 +88,36 @@ const MyCharts: React.FC = () => {
       }, [chartList]); // 当 chartList 更新时，重新计算 filteredChartList 
 
 
-      const handleCopy = async (code: string | undefined) => {
-        if (code) {
-          try {
-            const clearCode = (code || "")
-                    .replace(/\\n/g, "")          
-                    .replace(/\s+/g, " ")         
-                    .replace(/\"/g, "\"");
-            // 格式化代码
-            const formattedCode = formatCode(clearCode);
-      
-            if (formattedCode.length === 0) {
-              console.warn("无有效代码可复制");
-              return;
-            }
-      
-            // 复制格式化后的代码到剪切板
-            await navigator.clipboard.writeText(formattedCode);
-            message.success("图表Echarts代码复制到剪切板")
-            console.log("复制成功:", formattedCode);
-            // 可选：添加用户提示，显示“复制成功”
-          } catch (error) {
-            console.error("复制失败:", error);
-            message.info("复制失败:"+ error)
-          }
-        } else {
-            message.info("无有效代码可复制")
+    //复制JS代码
+    const handleCopy = async (code: string | undefined) => {
+    if (code) {
+        try {
+        const clearCode = (code || "")
+                .replace(/\\n/g, "")          
+                .replace(/\s+/g, " ")         
+                .replace(/\"/g, "\"");
+        // 格式化代码
+        const formattedCode = formatCode(clearCode);
+    
+        if (formattedCode.length === 0) {
             console.warn("无有效代码可复制");
+            return;
         }
-      };
+    
+        // 复制格式化后的代码到剪切板
+        await navigator.clipboard.writeText(formattedCode);
+        message.success("图表Echarts代码复制到剪切板")
+        console.log("复制成功:", formattedCode);
+        // 可选：添加用户提示，显示“复制成功”
+        } catch (error) {
+        console.error("复制失败:", error);
+        message.info("复制失败:"+ error)
+        }
+    } else {
+        message.info("无有效代码可复制")
+        console.warn("无有效代码可复制");
+    }
+    };
 
       const [isModalVisible, setIsModalVisible] = useState(false);
       const [modalChartOption, setModalChartOption] = useState<any>(null); // 初始化为 null
@@ -147,54 +150,116 @@ const MyCharts: React.FC = () => {
       };
       
 
-        // 关闭 Modal
-        const handleCancel = () => {
-            setIsModalVisible(false);
-        };
+    // 关闭 Modal
+    const handleCancel = () => {
+        setIsModalVisible(false);
+    };
 
-        // 定义 Modal 控制的状态
-        const [isDetailVisible, setIsDetailVisible] = useState(false);
-        const [detailInfo, setDetailInfo] = useState({ goal: '', genResult: '', createTime: '' });
+    // 定义 Modal 控制的状态
+    const [isDetailVisible, setIsDetailVisible] = useState(false);
+    const [detailInfo, setDetailInfo] = useState({ goal: '', genResult: '', createTime: '' });
 
-        // 定义 showDetail 函数，接收详细信息作为参数
-        const showDetail = (goal: string, genResult: string, createTime: string) => {
-            const formattedDate = moment(createTime).format('YYYY-MM-DD HH:mm:ss');
-            setDetailInfo({ goal, genResult, createTime: formattedDate});
-            setIsDetailVisible(true);
-        };
+    // 定义 showDetail 函数，接收详细信息作为参数
+    const showDetail = (goal: string, genResult: string, createTime: string) => {
+        const formattedDate = moment(createTime).format('YYYY-MM-DD HH:mm:ss');
+        setDetailInfo({ goal, genResult, createTime: formattedDate});
+        setIsDetailVisible(true);
+    };
 
-        // 定义 handleClose 函数，用于关闭 Modal
-        const handleClose = () => {
-            setIsDetailVisible(false);
-            setDetailInfo({ goal: '', genResult: '', createTime: '' }); // 清空内容
-        };
+    // 定义 handleClose 函数，用于关闭 Modal
+    const handleClose = () => {
+        setIsDetailVisible(false);
+        setDetailInfo({ goal: '', genResult: '', createTime: '' }); // 清空内容
+    };
 
-        const navigate = useNavigate();
-        let formattedCode2: string;
-        const handleEdit = (echartsJsCode: string | undefined) => {
-            if (echartsJsCode) {
-                try {
-                  const clearCode = (echartsJsCode || "")
-                          .replace(/\\n/g, "")          
-                          .replace(/\s+/g, " ")         
-                          .replace(/\"/g, "\"");
-                  // 格式化代码
-                  formattedCode2 = formatCode(clearCode);
-                  navigate('/editchart', { state: { code: formattedCode2 } });
-            
-                  if (formattedCode2.length === 0) {
-                    console.warn("无有效代码");
-                    return;
-                  }
-            
-                } catch (error) {
-                  message.info("无法编辑:"+ error)
+    // 跳转到编辑图表页面
+    const navigate = useNavigate();
+    let formattedCode2: string;
+    const handleEdit = (echartsJsCode: string | undefined) => {
+        if (echartsJsCode) {
+            try {
+                const clearCode = (echartsJsCode || "")
+                        .replace(/\\n/g, "")          
+                        .replace(/\s+/g, " ")         
+                        .replace(/\"/g, "\"");
+                // 格式化代码
+                formattedCode2 = formatCode(clearCode);
+                navigate('/editchart', { state: { code: formattedCode2 } });
+        
+                if (formattedCode2.length === 0) {
+                console.warn("无有效代码");
+                return;
                 }
-              } else {
-                  message.info("无有效代码")
-                  console.warn("无有效代码");
-              }
-      };
+        
+            } catch (error) {
+                message.info("无法编辑:"+ error)
+            }
+            } else {
+                message.info("无有效代码")
+                console.warn("无有效代码");
+            }
+    };
+
+    // 多选删除
+    const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+
+    const onSelectChange = (newSelectedRowKeys) => {
+    setSelectedRowKeys(newSelectedRowKeys);
+    };
+
+    const rowSelection = {
+    selectedRowKeys,
+    onChange: onSelectChange,
+    };
+    
+    const handleDelete = () => {
+    console.log(selectedRowKeys);
+    Modal.confirm({
+        centered: true,
+        title: '确认删除',
+        content: '确定从数据库中永久删除图表？',
+        okText: '删除',
+        cancelText: '取消',
+        okButtonProps: {
+            style: { backgroundColor: 'red', borderColor: 'red', color: 'white' }, // 自定义确认按钮样式
+            },
+        // onOk: () => {
+        // const newDataSource = filteredChartList.filter(
+        //     (item) => !selectedRowKeys.includes(item.id)
+        // );
+        // setFilteredChartList(newDataSource);
+        // setSelectedRowKeys([]); // 重置选中项
+        // },
+        onOk: async () => {
+            try {
+                const requestBody = {
+                id: selectedRowKeys,
+                };
+                const response = await deleteSelectedChartUsingPost(requestBody);
+        
+                if (response) {
+                if (response.data){
+                    message.success('删除成功');
+                }
+                if (response.code !== 0){
+                    message.error(response.message);
+                }
+                // 更新本地数据源
+                const newDataSource = filteredChartList.filter(
+                    (item) => !selectedRowKeys.includes(item.id)
+                );
+                setFilteredChartList(newDataSource);
+                setSelectedRowKeys([]); // 重置选中项
+                } else {
+                message.error('删除失败');
+                }
+            } catch (error) {
+                console.error('删除时发生错误:', error);
+                message.error('删除失败，请检查网络或稍后重试');
+            }
+            },
+        });
+    };
 
   
     return (
@@ -210,6 +275,28 @@ const MyCharts: React.FC = () => {
             padding: 24,
         }}
     >
+
+      <Button
+        onClick={handleDelete}
+        type="primary" danger
+        disabled={selectedRowKeys.length === 0}
+        style={{
+          position: 'fixed',
+          top: '93%',
+          right: '2%',
+          transform: 'translateY(-95%)', // 调整垂直位置
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+          zIndex: 1000, // 确保按钮位于页面最上层
+        }}
+      >
+        <DeleteOutlined style={{ fontSize: '20px' }} />
+      </Button>
         <ProCard style={{marginBottom: 16}}>
             <QueryFilter
             defaultCollapsed={true}
@@ -275,14 +362,16 @@ const MyCharts: React.FC = () => {
             />
             </QueryFilter>
         </ProCard>
-        
+
       <ProList<API.Chart> 
+      
         pagination={{
           defaultPageSize: 12,
           showSizeChanger: false,
         }}
         showActions="hover"
-        rowSelection={{}}
+        rowSelection={rowSelection}
+        // rowSelection={{}}
         grid={{gutter: 0, xs: 1,
             sm: 1,
             md: 1,
@@ -397,9 +486,9 @@ const MyCharts: React.FC = () => {
         }}
         headerTitle="我的图表"
         dataSource={filteredChartList}
-        rowKey="id"
+        rowKey='id'
       />
-      {/* <div> */}
+
       <Modal
         visible={isModalVisible}
         getContainer={false}
@@ -450,7 +539,6 @@ const MyCharts: React.FC = () => {
           <strong>创建时间:</strong> {detailInfo.createTime}
         </Typography.Paragraph>
       </Modal>
-      {/* </div> */}
 
     </div>
     );

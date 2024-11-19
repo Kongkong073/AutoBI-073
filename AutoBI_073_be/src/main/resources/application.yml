@@ -38,10 +38,10 @@ spring:
   jackson:
     time-zone: Asia/Shanghai
   # Elasticsearch 配置
-#  elasticsearch:
-#    uris: http://localhost:9200
-#    username: root
-#    password: 123456
+  #  elasticsearch:
+  #    uris: http://localhost:9200
+  #    username: root
+  #    password: 123456
   # 文件上传
   servlet:
     multipart:

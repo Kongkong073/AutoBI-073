@@ -277,7 +277,8 @@ const AddChart: React.FC = () => {
       xs={24} sm={24} md={12} lg={12} xl={12}
       >
 
-        <ProCard title={
+        <ProCard 
+        title={
             <Typography.Title level={4} style={{ margin: 0 }}>
             用户输入
             </Typography.Title>}
@@ -350,7 +351,15 @@ const AddChart: React.FC = () => {
             rules={[{ required: true, message: '请上传至少一个文件!' }]}
             valuePropName="fileList" 
             getValueFromEvent={normFile} noStyle>
-              <Upload.Dragger name="files" action="/upload.do" maxCount={1} accept=".csv,.xls,.xlsx">
+              <Upload.Dragger name="files" action="/upload.do" maxCount={1} accept=".csv,.xls,.xlsx"
+                beforeUpload={(file) => {
+                  const isLimit = file.size / 1024 / 1024 < 10;
+                  if (!isLimit) {
+                    message.error('文件大小不能超过 10MB!');
+                  }
+                  return isLimit;
+              }}
+              >
                 <p className="ant-upload-drag-icon">
                   <InboxOutlined />
                 </p>

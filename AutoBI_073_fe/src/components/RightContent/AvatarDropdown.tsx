@@ -1,13 +1,14 @@
-import { userLogoutUsingPost } from '@/services/AutoBI-073/userController'
+import { getLoginUserUsingGet, userLogoutUsingPost } from '@/services/AutoBI-073/userController'
 import { LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
-import { Spin } from 'antd';
+import { message, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import { stringify } from 'querystring';
 import type { MenuInfo } from 'rc-menu/lib/interface';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { flushSync } from 'react-dom';
 import HeaderDropdown from '../HeaderDropdown';
+import { getInitialState } from '@/app';
 
 export type GlobalHeaderRightProps = {
   menu?: boolean;
@@ -90,13 +91,15 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ menu, childre
     </span>
   );
 
+  
+
   if (!initialState) {
     return loading;
   }
+  const currentUser = initialState.currentUser;
 
-  const { currentUser } = initialState;
 
-  if (!currentUser || !currentUser.userName) {
+  if (!currentUser) {
     return loading;
   }
 

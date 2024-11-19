@@ -122,6 +122,33 @@ public class ChartController {
         return ResultUtils.success(b);
     }
 
+    /**
+     * 删除(多选）
+     *
+     * @param chartDeleteRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/deleteSelected")
+    public BaseResponse<Boolean> deleteSelectedChart(@RequestBody ChartDeleteRequest chartDeleteRequest, HttpServletRequest request) {
+        if (chartDeleteRequest == null || chartDeleteRequest.getId().length <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User user = userService.getLoginUser(request);
+        Long[] ids = chartDeleteRequest.getId();
+        boolean succ = true;
+        for (long id: ids){
+            Chart oldChart = chartService.getById(id);
+            ThrowUtils.throwIf(oldChart == null, ErrorCode.NOT_FOUND_ERROR);
+            // 仅本人或管理员可删除
+            if (!oldChart.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
+            succ = (chartService.removeById(id) && succ);
+        }
+        return ResultUtils.success(succ);
+    }
+
 
     /**
      * 更新（仅管理员）

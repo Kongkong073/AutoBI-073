@@ -32,6 +32,21 @@ export async function deleteChartUsingPost(
   });
 }
 
+/** deleteSelectedChart POST /api/chart/deleteSelected */
+export async function deleteSelectedChartUsingPost(
+  body: API.ChartDeleteRequest,
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponseBoolean_>('/api/chart/deleteSelected', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
 /** editChart POST /api/chart/edit */
 export async function editChartUsingPost(
   body: API.ChartEditRequest,

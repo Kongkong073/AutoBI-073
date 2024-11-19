@@ -123,6 +123,11 @@ declare namespace API {
     name?: string;
   };
 
+  type ChartDeleteRequest = {
+    id?: number[];
+    userId?: number;
+  };
+
   type ChartEditRequest = {
     chartData?: string;
     chartType?: string;

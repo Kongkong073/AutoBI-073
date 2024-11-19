@@ -117,11 +117,13 @@ const Login: React.FC = () => {
   
   const fetchUserInfo = async () => {
     const userInfo = await getLoginUserUsingGet();
+    console.log('userInfo');
+    console.log(userInfo);
     if (userInfo) {
       flushSync(() => {
         setInitialState((s) => ({
           ...s,
-          currentUser: userInfo,
+          currentUser: userInfo.data,
         }));
       });
     }
@@ -138,6 +140,7 @@ const Login: React.FC = () => {
         });
         message.success(defaultLoginSuccessMessage);
         await fetchUserInfo();
+        console.log(initialState);
         const urlParams = new URL(window.location.href).searchParams;
         history.push(urlParams.get('redirect') || '/');
         return;
