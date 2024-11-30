@@ -4,6 +4,9 @@ import com.autoBI073.mapper.ChartMapper;
 import com.autoBI073.service.ChartService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.autoBI073.model.entity.Chart;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -12,8 +15,20 @@ import org.springframework.stereotype.Service;
 * @createDate 2024-10-23 16:29:00
 */
 @Service
+@Slf4j
 public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart>
     implements ChartService {
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    /**
+     * 推送更新图表到前端
+     * @param chart 图表
+     */
+    public void sendUpdateChart(Chart chart) {
+        log.info("Sending update for chart: {}", chart);
+        messagingTemplate.convertAndSend("/topic/chartStatus", chart); // 推送到 /topic/chartStatus
+    }
 
 }
 

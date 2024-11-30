@@ -18,7 +18,8 @@ public enum ErrorCode {
     TOO_MANY_REQUEST(42900, "请求过于频繁，稍后尝试"),
     NO_AVAILABLE_REQUEST_TOTAL(42901, "生成次数已用完"),
     NO_AVAILABLE_REQUEST_DAILY(42902, "今日生成次数已用完，明日再试"),
-    OPERATION_ERROR(50001, "操作失败");
+    OPERATION_ERROR(50001, "操作失败"),
+    FILE_PROCESSING_ERROR(50002, "文件处理失败");
 
 
     /**

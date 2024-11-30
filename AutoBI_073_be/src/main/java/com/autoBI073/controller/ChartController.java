@@ -2,6 +2,7 @@ package com.autoBI073.controller;
 
 import cn.hutool.Hutool;
 import cn.hutool.core.io.FileUtil;
+import com.autoBI073.config.ThreadPoolExecutorConfig;
 import com.autoBI073.constant.Constants;
 
 import com.autoBI073.common.BaseResponse;
@@ -12,8 +13,10 @@ import com.autoBI073.constant.CommonConstant;
 import com.autoBI073.constant.UserConstant;
 import com.autoBI073.manager.RedisLimiterManager;
 import com.autoBI073.model.dto.chart.*;
+import com.autoBI073.model.enums.ChartStatusEnum;
 import com.autoBI073.model.vo.BiResponse;
 import com.autoBI073.service.ChartService;
+import com.autoBI073.service.impl.ChartServiceImpl;
 import com.autoBI073.utils.CsvUtils;
 import com.autoBI073.utils.ExcelUtils;
 import com.autoBI073.utils.MyStringUtils;
@@ -34,6 +37,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,6 +47,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.*;
 
 /**
  * 帖子接口
@@ -72,6 +77,12 @@ public class ChartController {
     private String apiUrl;
     @Resource
     private RedisLimiterManager redisLimiterManager;
+
+    @Resource
+    private ThreadPoolExecutor threadPoolExecutor;
+
+    @Resource
+    private ChartServiceImpl chartServiceImpl;
 
     // region 增删改查
 
@@ -332,103 +343,367 @@ public class ChartController {
         return result;
     }
 
-    /**
-     * 智能分析
-     *
-     * @param multipartFile
-     * @param genChartByAiRequest
-     * @param request
-     * @return
-     */
+//    /**
+//     * 智能分析
+//     *
+//     * @param multipartFile
+//     * @param genChartByAiRequest
+//     * @param request
+//     * @return
+//     */
+//    @PostMapping("/gen")
+//    public BaseResponse<BiResponse> genChartByAi(@RequestPart("file") MultipartFile multipartFile,
+//                                             GenChartByAiRequest genChartByAiRequest, HttpServletRequest request){
+//
+//        // 登录校验
+//        User loginUser;
+//        try{
+//            loginUser = userService.getLoginUser(request);
+//        }catch (BusinessException e){
+//            return ResultUtils.error(e.getCode(), e.getMessage());
+//        }
+//
+//        //限流
+//        try{
+//            redisLimiterManager.checkRateLimit(loginUser.getId());
+//        }catch (BusinessException e){
+//            return ResultUtils.error(e.getCode(), e.getMessage());
+//        }
+//
+//        String name = genChartByAiRequest.getName();
+//        String goal = genChartByAiRequest.getGoal();
+//        String chartType = genChartByAiRequest.getChartType();
+//
+//        // 校验
+//        // 如果分析目标为空，就抛出请求参数错误异常，并给出提示
+//        ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
+//        // 如果名称不为空，并且名称长度大于100，就抛出异常，并给出提示
+//        ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
+//
+//        //校验
+//        long size = multipartFile.getSize();
+//        String originalFilename = multipartFile.getOriginalFilename();
+//        ThrowUtils.throwIf(size > Constants.ONE_MB, ErrorCode.PARAMS_ERROR, "文件超过 1M");
+//        String suffix = FileUtil.getSuffix(originalFilename);
+//        ThrowUtils.throwIf(!Constants.validFileSuffixList.contains(suffix), ErrorCode.PARAMS_ERROR, "文件后缀非法");
+//
+//
+//        // 用户输入
+//        StringBuilder userInput = new StringBuilder();
+//        userInput.append("数据说明和分析目标：").append(goal).append("\n");
+//        if (StringUtils.isNotBlank(chartType)) {
+//            // 就将分析目标拼接上“请使用”+图表类型
+//            userInput.append("请使用" + chartType).append("\n");
+//        }
+//
+//        // 压缩后的数据（把multipartFile传进来，其他的东西先注释）
+//        String result = null;
+//        try {
+//            result = processFile(multipartFile);
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+//        userInput.append("原始数据：").append(result).append("\n");
+//
+//
+//        // create a request
+//        ChatRequest request1 = new ChatRequest(model, userInput.toString());
+//
+//        // call the API
+//        ChatResponse response = restTemplate.postForObject(apiUrl, request1, ChatResponse.class);
+//
+//        // 插入Chart表
+//        if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
+////            String[] responses = MyStringUtils.splitWithDelimiter(response.getChoices().get(0).getMessage().getContent(), "\"JsEChartCode\"", "\"JsonEChartCode\"");
+//            String[] responses = MyStringUtils.splitWithDelimiter2(response.getChoices().get(0).getMessage().getContent(), "\"JsEChartCode\"");
+//            Chart chart = new Chart();
+//            chart.setName(name);
+//            chart.setGoal(goal);
+//            chart.setChartData(result);
+//            chart.setChartType(chartType);
+//            if (StringUtils.isNotBlank(chartType)) {
+//                chart.setChartType("自动");
+//            }
+////            chart.setGenChart(MyStringUtils.extractContent(responses[2]));
+//            chart.setGenResult(MyStringUtils.extractContent(responses[0]));
+//            chart.setEchartsJsCode(MyStringUtils.removeQuoteMark(MyStringUtils.extractContent(responses[1])));
+//            chart.setUserId(loginUser.getId());
+//            boolean saveResult = chartService.save(chart);
+//            ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
+//
+//            // 返回结果
+//            BiResponse biResponse = new BiResponse();
+////            biResponse.setGenChart(MyStringUtils.extractContent(responses[2]));
+//            biResponse.setGenResult(MyStringUtils.extractContent(responses[0]));
+//            biResponse.setGenJsEchartCode(MyStringUtils.removeQuoteMark(MyStringUtils.extractContent(responses[1])));
+//            biResponse.setChartId(chart.getId());
+//            log.info(biResponse.toString());
+//            return ResultUtils.success(biResponse);
+////            return ResultUtils.success(responses[0] + "\\n" + responses[1] + "\\n" + responses[2]);
+//        } else {
+//            throw new RuntimeException("No structured response received from OpenAI API.");
+//        }
+//    }
+
     @PostMapping("/gen")
-    public BaseResponse<BiResponse> genChartByAi(@RequestPart("file") MultipartFile multipartFile,
-                                             GenChartByAiRequest genChartByAiRequest, HttpServletRequest request){
+    public BaseResponse<BiResponse> genChartByAiSyncOrAsync(
+            @RequestPart("file") MultipartFile multipartFile,
+            GenChartByAiRequest genChartByAiRequest,
+            HttpServletRequest request) {
 
         // 登录校验
         User loginUser;
-        try{
-            loginUser = userService.getLoginUser(request);
-        }catch (BusinessException e){
-            return ResultUtils.error(e.getCode(), e.getMessage());
-        }
-
-        //限流
-        try{
-            redisLimiterManager.checkRateLimit(loginUser.getId());
-        }catch (BusinessException e){
-            return ResultUtils.error(e.getCode(), e.getMessage());
-        }
-
-        String name = genChartByAiRequest.getName();
-        String goal = genChartByAiRequest.getGoal();
-        String chartType = genChartByAiRequest.getChartType();
-
-        // 校验
-        // 如果分析目标为空，就抛出请求参数错误异常，并给出提示
-        ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
-        // 如果名称不为空，并且名称长度大于100，就抛出异常，并给出提示
-        ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
-
-        //校验
-        long size = multipartFile.getSize();
-        String originalFilename = multipartFile.getOriginalFilename();
-        ThrowUtils.throwIf(size > Constants.ONE_MB, ErrorCode.PARAMS_ERROR, "文件超过 1M");
-        String suffix = FileUtil.getSuffix(originalFilename);
-        ThrowUtils.throwIf(!Constants.validFileSuffixList.contains(suffix), ErrorCode.PARAMS_ERROR, "文件后缀非法");
-
-
-        // 用户输入
-        StringBuilder userInput = new StringBuilder();
-        userInput.append("数据说明和分析目标：").append(goal).append("\n");
-        if (StringUtils.isNotBlank(chartType)) {
-            // 就将分析目标拼接上“请使用”+图表类型
-            userInput.append("请使用" + chartType).append("\n");
-        }
-
-        // 压缩后的数据（把multipartFile传进来，其他的东西先注释）
-        String result = null;
         try {
-            result = processFile(multipartFile);
+            loginUser = validateLogin(request);
+            validateRateLimit(loginUser.getId());
+        } catch (BusinessException e) {
+            log.error("Validation failed: {}", e.getMessage());
+            return ResultUtils.error(e.getCode(), e.getMessage());
+        }
+
+        // 参数校验
+        try {
+            validateRequest(multipartFile, genChartByAiRequest);
+        } catch (BusinessException e) {
+            log.error("Request validation failed: {}", e.getMessage());
+            return ResultUtils.error(e.getCode(), e.getMessage());
+        }
+
+        // 数据预处理
+        String processedData;
+        try {
+            processedData = processFile(multipartFile);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            log.error("File processing failed: {}", e.getMessage());
+            return ResultUtils.error(ErrorCode.FILE_PROCESSING_ERROR, "文件处理失败");
         }
-        userInput.append("原始数据：").append(result).append("\n");
+
+        // 构造用户输入
+        String userInput = buildUserInput(genChartByAiRequest, processedData);
+
+        // 插入初始图表数据
+        Chart chart = new Chart();
+        chart.setUserId(loginUser.getId());
+        chart.setName(genChartByAiRequest.getName());
+        chart.setGoal(genChartByAiRequest.getGoal());
+        chart.setChartData(processedData);
+        chart.setStatus(ChartStatusEnum.WAITING.getCode());
+        chart.setChartType(StringUtils.defaultIfBlank(genChartByAiRequest.getChartType(), "自动"));
+        boolean saveResult = chartService.save(chart);
+        ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
+
+        // 优先同步执行，异步回退
+        boolean isSyncExecuted = tryExecuteSyncWithFallback(() -> handleAiRequestAndSave(chart, userInput), chart.getId());
+        // 如果同步执行成功，调用 buildBiResponse 返回结果
+        if (isSyncExecuted) {
+            log.info("Synchronous execution completed successfully.");
+            return ResultUtils.success(buildBiResponse(chart));
+        }
+
+        // 异步任务已提交，返回接受状态
+        BiResponse biResponse = new BiResponse();
+        biResponse.setChartId(chart.getId());
+        return ResultUtils.success(biResponse);
+    }
+
+//    /**
+//     * 尝试同步执行任务，并在失败时自动回退到异步执行
+//     */
+//    private boolean tryExecuteSyncWithFallback(Runnable task) {
+//        // 检查线程池是否有空闲线程
+//        if (threadPoolExecutor.getActiveCount() < threadPoolExecutor.getMaximumPoolSize()) {
+//            try {
+//                // 同步执行任务
+//                threadPoolExecutor.submit(task).get(); // 阻塞直到任务完成
+//                log.info("Task executed synchronously.");
+//                return true;
+//            } catch (InterruptedException | ExecutionException e) {
+//                // 捕获同步执行的异常，切换到异步
+//                log.warn("Synchronous execution failed, switching to asynchronous execution: {}", e.getMessage());
+//                Thread.currentThread().interrupt(); // 恢复中断状态
+//            }
+//        }
+//
+//        // 如果同步执行失败或线程池已满，尝试异步提交任务
+//        try {
+//            threadPoolExecutor.submit(task);
+//            log.info("Task submitted for asynchronous execution.");
+//            return false; // 异步提交成功但非同步执行
+//        } catch (RejectedExecutionException e) {
+//            // 异步任务提交失败
+//            log.error("Failed to submit task for asynchronous execution: {}", e.getMessage());
+//            return false; // 无法执行任务
+//        }
+//    }
+
+    private boolean tryExecuteSyncWithFallback(Runnable task, Long chartId) {
+        // 检查线程池是否有空闲线程
+//        if (threadPoolExecutor.getActiveCount() < threadPoolExecutor.getMaximumPoolSize()) {
+//            try {
+//                // 同步执行任务，设置超时时间为 20 秒
+//                Future<?> future = threadPoolExecutor.submit(task);
+//                future.get(20, TimeUnit.SECONDS); // 阻塞直到任务完成或超时
+//                log.info("Task executed synchronously.");
+//                return true;
+//            } catch (TimeoutException e) {
+//                log.warn("Synchronous execution timed out, marking as FAILED and switching to asynchronous execution.");
+//                handleTaskTimeout(chartId); // 处理超时
+//            } catch (InterruptedException | ExecutionException e) {
+//                log.warn("Synchronous execution failed, switching to asynchronous execution: {}", e.getMessage());
+//                Thread.currentThread().interrupt(); // 恢复中断状态
+//            }
+//        }
+        // 如果同步执行失败或线程池已满，尝试异步提交任务
+        try {
+            threadPoolExecutor.submit(() -> {
+                try {
+                    // 异步任务的超时监控
+                    Future<?> future = threadPoolExecutor.submit(task);
+                    future.get(20, TimeUnit.SECONDS); // 异步任务也设置超时
+                } catch (TimeoutException e) {
+                    log.error("Asynchronous execution timed out, marking as FAILED.");
+                    handleTaskTimeout(chartId); // 处理超时
+                } catch (InterruptedException | ExecutionException e) {
+                    log.error("Asynchronous execution failed: {}", e.getMessage());
+                }
+            });
+            log.info("Task submitted for asynchronous execution.");
+            return false; // 异步提交成功但非同步执行
+        } catch (RejectedExecutionException e) {
+            log.error("Failed to submit task for asynchronous execution: {}", e.getMessage());
+            return false; // 无法执行任务
+        }
+    }
+
+    private void handleTaskTimeout(Long chartId) {
+        Chart updateChart = new Chart();
+        updateChart.setId(chartId);
+        updateChart.setStatus(ChartStatusEnum.FAILED.getCode());
+        updateChart.setExecMessage("任务超时，已失败");
+        boolean updateResult = chartService.updateById(updateChart);
+        if (!updateResult) {
+            log.error("Failed to update chart {} status to FAILED after timeout.", chartId);
+        }
+    }
 
 
-        // create a request
-        ChatRequest request1 = new ChatRequest(model, userInput.toString());
+    /**
+     * 校验请求参数
+     */
+    private void validateRequest(MultipartFile multipartFile, GenChartByAiRequest genChartByAiRequest) {
+        ThrowUtils.throwIf(StringUtils.isBlank(genChartByAiRequest.getGoal()), ErrorCode.PARAMS_ERROR, "目标为空");
+        ThrowUtils.throwIf(StringUtils.isNotBlank(genChartByAiRequest.getName()) && genChartByAiRequest.getName().length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
+        ThrowUtils.throwIf(multipartFile.getSize() > Constants.ONE_MB, ErrorCode.PARAMS_ERROR, "文件超过1M");
+        String suffix = FileUtil.getSuffix(multipartFile.getOriginalFilename());
+        ThrowUtils.throwIf(!Constants.validFileSuffixList.contains(suffix), ErrorCode.PARAMS_ERROR, "文件后缀非法");
+    }
 
-        // call the API
-        ChatResponse response = restTemplate.postForObject(apiUrl, request1, ChatResponse.class);
 
-        // 插入Chart表
-        if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
-//            String[] responses = MyStringUtils.splitWithDelimiter(response.getChoices().get(0).getMessage().getContent(), "\"JsEChartCode\"", "\"JsonEChartCode\"");
-            String[] responses = MyStringUtils.splitWithDelimiter2(response.getChoices().get(0).getMessage().getContent(), "\"JsEChartCode\"");
-            Chart chart = new Chart();
-            chart.setName(name);
-            chart.setGoal(goal);
-            chart.setChartData(result);
-            chart.setChartType(chartType);
-//            chart.setGenChart(MyStringUtils.extractContent(responses[2]));
-            chart.setGenResult(MyStringUtils.extractContent(responses[0]));
+    /**
+     * 校验登录用户
+     */
+    private User validateLogin(HttpServletRequest request) {
+        return userService.getLoginUser(request);
+    }
+
+    /**
+     * 校验限流
+     */
+    private void validateRateLimit(Long userId) {
+        redisLimiterManager.checkRateLimit(userId);
+    }
+
+
+    /**
+     * 调用 AI 接口
+     */
+    private ChatResponse callAiApi(String userInput) {
+        ChatRequest chatRequest = new ChatRequest(model, userInput);
+        return restTemplate.postForObject(apiUrl, chatRequest, ChatResponse.class);
+    }
+
+    /**
+     * 更新图表状态
+     */
+    private void updateChartStatus(Long chartId, String status) {
+        Chart updateChart = new Chart();
+        updateChart.setId(chartId);
+        updateChart.setStatus(status);
+        boolean updateResult = chartService.updateById(updateChart);
+        if (!updateResult) {
+            handleChartUpdateError(chartId, "更新图表状态失败");
+        }
+    }
+
+
+    private void handleChartUpdateError(long chartId, String execMessage) {
+        Chart updateChartResult = new Chart();
+        updateChartResult.setId(chartId);
+        updateChartResult.setStatus(ChartStatusEnum.FAILED.getCode());
+        updateChartResult.setExecMessage(execMessage);
+        boolean updateResult = chartService.updateById(updateChartResult);
+        if (!updateResult) {
+            log.error("更新图表失败状态失败" + chartId + "," + execMessage);
+        }
+    }
+
+
+    private void handleAiRequestAndSave(Chart chart, String userInput) {
+        try {
+            // 更新状态为 RUNNING
+            updateChartStatus(chart.getId(), ChartStatusEnum.RUNNING.getCode());
+            //chartServiceImpl.sendUpdateChart(chart);  // 推送状态变化给前端
+
+            // 调用 AI 接口
+            ChatResponse response = callAiApi(userInput);
+
+            // 处理响应数据
+            if (response == null || response.getChoices() == null || response.getChoices().isEmpty()) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "AI 响应无效");
+            }
+            String[] responses = MyStringUtils.splitWithDelimiter2(
+                    response.getChoices().get(0).getMessage().getContent(),
+                    "\"JsEChartCode\""
+            );
             chart.setEchartsJsCode(MyStringUtils.removeQuoteMark(MyStringUtils.extractContent(responses[1])));
-            chart.setUserId(loginUser.getId());
-            boolean saveResult = chartService.save(chart);
-            ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
+            chart.setGenResult(MyStringUtils.extractContent(responses[0]));
+            chart.setStatus(ChartStatusEnum.SUCCEED.getCode());
 
-            // 返回结果
-            BiResponse biResponse = new BiResponse();
-//            biResponse.setGenChart(MyStringUtils.extractContent(responses[2]));
-            biResponse.setGenResult(MyStringUtils.extractContent(responses[0]));
-            biResponse.setGenJsEchartCode(MyStringUtils.removeQuoteMark(MyStringUtils.extractContent(responses[1])));
-            biResponse.setChartId(chart.getId());
-            log.info(biResponse.toString());
-            return ResultUtils.success(biResponse);
-//            return ResultUtils.success(responses[0] + "\\n" + responses[1] + "\\n" + responses[2]);
-        } else {
-            throw new RuntimeException("No structured response received from OpenAI API.");
+            boolean updateResult = chartService.updateById(chart);
+            if (!updateResult) {
+                handleChartUpdateError(chart.getId(), "更新图表成功状态失败");
+            }
+        } catch (Exception e) {
+            log.error("Error while processing AI request for chart {}: {}", chart.getId(), e.getMessage());
+            handleChartUpdateError(chart.getId(), "任务执行失败: " + e.getMessage());
+        }finally {
+            //chartServiceImpl.sendUpdateChart(chart);  // 推送变化图表给前端
         }
+    }
+
+
+    /**
+     * 构建用户输入
+     */
+    private String buildUserInput(GenChartByAiRequest genChartByAiRequest, String processedData) {
+        StringBuilder userInput = new StringBuilder();
+        userInput.append("数据说明和分析目标：").append(genChartByAiRequest.getGoal()).append("\n");
+        if (StringUtils.isNotBlank(genChartByAiRequest.getChartType())) {
+            userInput.append("请使用").append(genChartByAiRequest.getChartType()).append("\n");
+        }
+        userInput.append("原始数据：").append(processedData).append("\n");
+        return userInput.toString();
+    }
+
+    /**
+     * 构建响应数据
+     */
+    private BiResponse buildBiResponse(Chart chart) {
+        BiResponse biResponse = new BiResponse();
+        biResponse.setChartId(chart.getId());
+        biResponse.setGenResult(chart.getGenResult());
+        biResponse.setGenJsEchartCode(chart.getEchartsJsCode());
+        return biResponse;
     }
 
 

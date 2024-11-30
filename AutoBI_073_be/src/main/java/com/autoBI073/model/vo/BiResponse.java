@@ -18,7 +18,7 @@ public class BiResponse {
 
     public String toString(){
         return  "genResult: " + getGenResult() + "\n"+
-                "genJsEchartCode: " + getGenJsEchartCode()+ "\n" ;
+                "genJsEchartCode: " + getGenJsEchartCode()+ "\n";
 //                + "genJsonChart: " + getGenChart();
     }
 }
