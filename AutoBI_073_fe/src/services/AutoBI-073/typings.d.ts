@@ -106,12 +106,14 @@ declare namespace API {
     chartType?: string;
     createTime?: string;
     echartsJsCode?: string;
+    execMessage?: string;
     genChart?: string;
     genResult?: string;
     goal?: string;
     id?: number;
     isDelete?: number;
     name?: string;
+    status?: string;
     updateTime?: string;
     userId?: number;
   };
@@ -166,7 +168,7 @@ declare namespace API {
     id?: number;
   };
 
-  type genChartByAiUsingPOSTParams = {
+  type genChartByAiSyncOrAsyncUsingPOSTParams = {
     chartType?: string;
     goal?: string;
     name?: string;

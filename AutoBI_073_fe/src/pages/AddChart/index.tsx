@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { genChartByAiUsingPost } from '@/services/AutoBI-073/chartController';
+import { genChartByAiSyncOrAsyncUsingPost } from '@/services/AutoBI-073/chartController';
 import React from 'react';
 import '@/pages/User/CSS/login.css';
 import TextArea from 'antd/es/input/TextArea';
@@ -16,6 +16,7 @@ import { Divider } from 'rc-menu';
 import { ProCard } from '@ant-design/pro-components';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { showAvailableRequestsUsingGet } from '@/services/AutoBI-073/userRateLimitController';
+import { useForm } from 'antd/es/form/Form';
 
 /**
  * 添加图表页面
@@ -35,6 +36,7 @@ const AddChart: React.FC = () => {
     const chartRef = useRef(null);
     const [totalLimit, setTotalLimit] = useState<number>(0);
     const [dailyLimit, setDailyLimit] = useState<number>(0);
+    const [form] = useForm();
 
     const loadUserRateLimit = async() => {
       try {
@@ -77,7 +79,9 @@ const AddChart: React.FC = () => {
 
       // 打开 Modal
     const showModal = () => {
-      setIsModalVisible(true);
+      if (option !== ""){
+        setIsModalVisible(true);
+      }
     };
 
     // 关闭 Modal
@@ -170,63 +174,31 @@ const AddChart: React.FC = () => {
     }
     console.log(params)
     console.log(values.dragger[0])
-
-    // try {
-    //   // 需要取到上传的原始数据file→file→originFileObj(原始数据)
-    //   const res = await genChartByAiUsingPost(params, {}, values.dragger[0].originFileObj);
-    //   // 正常情况下，如果没有返回值就分析失败，有，就分析成功
-    //   if (!res?.data) {
-    //     message.error('分析失败');
-    //   } else {
-    //     message.success('分析成功');  
-    //     setChart(res.data);
-    //     setCode((res.data.genJsEchartCode?.toString() || '')
-    //     .replace(/\\n/g, "")          
-    //     .replace(/\s+/g, " ")         
-    //     .replace(/\"/g, "\""));
-    //     // 解析成对象，为空则设为空字符串
-    //     // const chartOption = JSON.parse(JSON.parse(res.data.genChart ?? ''));
-    //     console.info(code);
-    //     const formattedCode2 = formatCode(code);
-    //     console.info(formattedCode2);
-    //     const chartOption = new Function('return ' + formattedCode2)();
-    //     console.log("chartOption: ", chartOption);
-    //     if (typeof chartOption !== 'object' && chartOption === null) {
-    //       message.error('图表代码解析错误')
-    //     } else {
-    //       // 从后端得到响应结果之后，把响应结果设置到图表状态里
-    //       chartOption.grid = chartOption.grid || { left: '15%', right: '15%', top: '10%', bottom: '10%' };
-    //       setOption(chartOption);
-          
-    //     }
-    //   }  
-    // // 异常情况下，提示分析失败+具体失败原因
-    // } catch (e: any) {
-    //   message.error('分析失败,' + e.message);
-    // }
-    // 当结束提交，把submitting设置为false
-    
     try {
-      // 获取上传的文件对象
-      const res = await genChartByAiUsingPost(params, {}, values.dragger[0].originFileObj);
-  
-      if (res?.code === 40100){
-        message.error(res.message);
-        return;
-      }else if (res?.code === 42900){
-        message.error(res.message);
+      // 获取文件对象
+      if (!values.dragger || !Array.isArray(values.dragger) || !values.dragger[0]) {
+        message.error("请上传有效的文件");
+        setSubmitting(false);
         return;
       }
-
-      // 检查返回的数据
-      if (!res?.data) {
-        message.error('分析失败');
-      } else {
-        message.success('分析成功');  
-        setChart(res.data);
   
-        // 处理返回的代码字符串
-        const rawCode = (res.data.genJsEchartCode?.toString() || '')
+      const res = await genChartByAiSyncOrAsyncUsingPost(params, {}, values.dragger[0].originFileObj);
+  
+      if (res?.code !== 0) {
+        message.error(res.message || '分析失败，请稍后重试');
+        return;
+      }
+  
+      // 检查响应数据
+      const data = res.data;
+      if (!data) {
+        message.error('分析失败，未返回有效数据');
+      } else if (data.genJsEchartCode && data.genResult) {
+        message.success('结果生成成功');
+        setChart(data);
+  
+        // 解析并格式化返回的代码
+        const rawCode = (data.genJsEchartCode?.toString() || '')
           .replace(/\\n/g, "")
           .replace(/\s+/g, " ")
           .replace(/\"/g, "\"");
@@ -234,18 +206,15 @@ const AddChart: React.FC = () => {
         setCode(rawCode);
   
         // 格式化代码
-        const formattedCode = formatCode(rawCode);
-        console.info(formattedCode);
-  
         try {
-          // 将字符串解析为对象
-          const chartOption = new Function('return ' + formattedCode)();
-          console.log("chartOption: ", chartOption);
+          const formattedCode = formatCode(rawCode);
+          console.info(formattedCode);
   
+          // 动态解析图表选项
+          const chartOption = new Function('return ' + formattedCode)();
           if (typeof chartOption !== 'object' || chartOption === null) {
             message.error('图表代码解析错误');
           } else {
-            // 设置图表的 grid 属性并更新 option
             chartOption.grid = chartOption.grid || { left: '15%', right: '15%', top: '10%', bottom: '10%' };
             setOption(chartOption);
           }
@@ -253,11 +222,72 @@ const AddChart: React.FC = () => {
           console.error("解析 chartOption 出错:", parseError);
           message.error("图表代码解析错误");
         }
+      } else {
+        message.info("任务已提交，正在后台处理，稍后请前往 '我的图表' 页面查看结果。");
+        // 是否在任务提交后台分析后清空表单内容
+        // form.resetFields();
       }
     } catch (e: any) {
-      message.error('分析失败,' + e.message);
+      message.error('分析失败, ' + (e.message || '请稍后重试'));
+    } finally {
+      setSubmitting(false); // 结束提交状态
     }
-    setSubmitting(false);
+    
+    // try {
+    //   // 获取上传的文件对象
+    //   const res = await genChartByAiUsingPost(params, {}, values.dragger[0].originFileObj);
+  
+    //   if (res?.code !== 200) {
+    //     message.error(res.message || '分析失败，请稍后重试');
+    //     return;
+    //   }
+
+    //   // 检查返回的数据
+    //   if (!res?.data) {
+    //     message.error('分析失败');
+    //   } else {
+    //     // message.success('分析成功');
+    //     if (res.data.genJsEchartCode !== null && res.data.genResult !== null){
+    //       message.success('结果生成中');
+    //       setChart(res.data);
+  
+    //       // 处理返回的代码字符串
+    //       const rawCode = (res.data.genJsEchartCode?.toString() || '')
+    //         .replace(/\\n/g, "")
+    //         .replace(/\s+/g, " ")
+    //         .replace(/\"/g, "\"");
+    
+    //       setCode(rawCode);
+    
+    //       // 格式化代码
+    //       const formattedCode = formatCode(rawCode);
+    //       console.info(formattedCode);
+    
+    //       try {
+    //         // 将字符串解析为对象
+    //         const chartOption = new Function('return ' + formattedCode)();
+    //         console.log("chartOption: ", chartOption);
+    
+    //         if (typeof chartOption !== 'object' || chartOption === null) {
+    //           message.error('图表代码解析错误');
+    //         } else {
+    //           // 设置图表的 grid 属性并更新 option
+    //           chartOption.grid = chartOption.grid || { left: '15%', right: '15%', top: '10%', bottom: '10%' };
+    //           setOption(chartOption);
+    //         }
+    //       } catch (parseError) {
+    //         console.error("解析 chartOption 出错:", parseError);
+    //         message.error("图表代码解析错误");
+    //       }
+    //     }else {
+    //       message.success("任务已提交，正在后台处理,稍后在我的图表页面查看。");
+
+    //     } 
+    //   }
+    // } catch (e: any) {
+    //   message.error('分析失败,' + e.message);
+    // }
+    // setSubmitting(false);
   };  
 
   const [visible, setVisible] = useState(true);
@@ -284,6 +314,7 @@ const AddChart: React.FC = () => {
             </Typography.Title>}
         >
           <Form
+            form={form}
             // 表单名称改为addChart
             name="addChart"
             onFinish={onFinish}

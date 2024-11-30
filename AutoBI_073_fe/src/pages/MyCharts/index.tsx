@@ -1,4 +1,4 @@
-import { Affix, App, Button, Divider, Drawer, Input, message, Space, Typography } from 'antd';
+import { Affix, App, Button, Divider, Drawer, Input, message, Result, Space, Spin, Typography } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import { deleteSelectedChartUsingPost, listMyChartByPageUsingPost } from '@/services/AutoBI-073/chartController';
 import { ProFormRadio, ProList, QueryFilter, ProFormText, ProFormSelect, ProFormDatePicker, ProCard} from '@ant-design/pro-components';
@@ -11,10 +11,12 @@ import Modal from 'antd/es/modal/Modal';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import * as Stomp from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 
 const MyCharts: React.FC = () => {
 
-    const [chartList, setChartList] = useState<API.Chart[]>();
+    const [chartList, setChartList] = useState<API.Chart[]>([]);
     const [total, setTotal] = useState<number>(0);
 
     const initialSearchParam = {
@@ -23,6 +25,48 @@ const MyCharts: React.FC = () => {
     }
     const [searchParam, setSearchParam] = useState<API.ChartQueryRequest>({...initialSearchParam});
     const [filteredChartList, setFilteredChartList] = useState<API.Chart[]>([]);
+
+    // useEffect(() => {
+    //     // 创建 WebSocket 客户端
+    //     const socket = new SockJS('http://localhost:8101/chart-websocket');
+    //     const stompClient = Stomp.Stomp.over(socket);
+      
+    //     stompClient.connect({}, () => {
+    //       console.log('Connected to WebSocket');
+      
+    //       // 订阅图表状态更新的主题
+    //       stompClient.subscribe('/topic/chartStatus', (message) => {
+    //         try {
+    //           // 解析收到的更新数据
+    //           const updateChart = JSON.parse(message.body);
+    //           console.log('Received update:', updateChart);
+      
+    //           // 更新 chartList
+    //           setChartList((prevList) =>
+    //             prevList.map((chart) =>
+    //               chart.id === updateChart.id
+    //                 ? { ...chart, ...updateChart } // 用更新数据覆盖对应 chart
+    //                 : chart
+    //             )
+    //           );
+      
+    //           console.log('Updated chart list with new chart status:', updateChart);
+    //         } catch (error) {
+    //           console.error('Error while updating chartList:', error);
+    //         }
+    //       });
+    //     });
+      
+    //     return () => {
+    //       // 在组件卸载时断开连接
+    //       if (stompClient) {
+    //         stompClient.disconnect(() => {
+    //           console.log('WebSocket disconnected');
+    //         });
+    //       }
+    //     };
+    //   }, []); // 只在组件挂载时执行
+      
 
     //加载chart数据
     const loadData = async() => {
@@ -340,6 +384,7 @@ const MyCharts: React.FC = () => {
                     { value: '桑基图', label: '桑基图 (Sankey Diagram)' },
                     { value: '仪表盘', label: '仪表盘 (Gauge)' },
                     { value: '关系图', label: '关系图 (Graph)' },
+                    { value: '自动', label: '自动（Auto）' },
                     // { value: otherChartType, label: '其他 (Other)' },
                 ]}
                 
@@ -422,7 +467,7 @@ const MyCharts: React.FC = () => {
                   const color = row.chartType ? colorMap[row.chartType] || "default" : "default";
                   return (
                     <Space size={0}>
-                      <Tag color={color}>{row.chartType || "默认"}</Tag>
+                      <Tag color={color}>{row.chartType || "自动"}</Tag>
                     </Space>
                   );
               },
@@ -435,24 +480,25 @@ const MyCharts: React.FC = () => {
           content: {
             dataIndex: 'echartsJsCode', 
             render: (_, row) => {
-                let chartOption;
-                try {
-                    const clearCode = (row.echartsJsCode || "")
-                            .replace(/\\n/g, "")          
-                            .replace(/\s+/g, " ")         
-                            .replace(/\"/g, "\"");
-                    formattedCode2 = formatCode(clearCode);
-                    // chartOption = row.genChart ? JSON.parse(JSON.parse(row.genChart ?? '')) : null;
-                    chartOption = new Function('return ' + formattedCode2)();
-                    if (chartOption){
-                        chartOption.title = undefined;
-                        chartOption.grid = chartOption.grid || { left: '15%', right: '15%', top: '10%', bottom: '10%' };
+                let chartOption = null;
+                if (row.status === 'SUCCEED'){
+                    try {
+                        const clearCode = (row.echartsJsCode || "")
+                                .replace(/\\n/g, "")          
+                                .replace(/\s+/g, " ")         
+                                .replace(/\"/g, "\"");
+                        formattedCode2 = formatCode(clearCode);
+                        // chartOption = row.genChart ? JSON.parse(JSON.parse(row.genChart ?? '')) : null;
+                        chartOption = new Function('return ' + formattedCode2)();
+                        if (chartOption){
+                            chartOption.title = undefined;
+                            chartOption.grid = chartOption.grid || { left: '15%', right: '15%', top: '10%', bottom: '10%' };
+                        }
+                    } catch (error) {
+                        // console.error("解析错误:", error);
+                        chartOption = null;
                     }
-                } catch (error) {
-                    console.error("解析错误:", error);
-                    chartOption = null;
                 }
-
                 return (
                 <div
                 style={{  display: 'flex', justifyContent: 'center', alignItems: 'center', height: '280px', width:'100%' }}
@@ -463,6 +509,25 @@ const MyCharts: React.FC = () => {
                         option={chartOption}
                         style={{  width: '100%', height: '280px' }}/>
                         </ErrorBoundary>
+                    )}
+                    {!chartOption && (row.status === "WAITING") &&(
+                      <Spin tip="排队中，请耐心等待" size="large">{"... queueing ..."}</Spin>
+                    )}
+                    {!chartOption && (row.status === "RUNNING") &&(
+                              <Spin tip="结果生成中" size="large">{"... running ..."}</Spin>
+                      
+                    )}
+                    {!chartOption && (row.status === "FAILED") && (
+                        <Result
+                            status="error"
+                            title="图表生成失败"
+                      />
+                    )}
+                    {!chartOption && (row.status === "SUCCEED") && (
+                        <Result
+                            status="error"
+                            title="代码解析失败"
+                      />
                     )}
                 </div>
                 );
@@ -485,7 +550,7 @@ const MyCharts: React.FC = () => {
             }
         }}
         headerTitle="我的图表"
-        dataSource={filteredChartList}
+        dataSource={chartList}
         rowKey='id'
       />
 
@@ -499,12 +564,12 @@ const MyCharts: React.FC = () => {
         width={800}
         height={600}
         centered
-        bodyStyle={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 20,
-        }}
+        // bodyStyle={{
+        //     display: 'flex',
+        //     justifyContent: 'center',
+        //     alignItems: 'center',
+        //     padding: 20,
+        // }}
         >
         {modalChartOption && (
             <ErrorBoundary>
@@ -531,7 +596,7 @@ const MyCharts: React.FC = () => {
           <strong>分析结论:</strong> 
           <div
               dangerouslySetInnerHTML={{
-                __html:detailInfo.genResult.replace(/\\n/g, '<br />'),
+                __html:detailInfo.genResult?.replace(/\\n/g, '<br />'),
               }}
               />
         </Typography.Paragraph>

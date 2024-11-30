@@ -1,8 +1,8 @@
 import { Footer } from '@/components';
-import { login } from '@/services/ant-design-pro/api';
+import '@/pages/User/CSS/login.css';
 import { getFakeCaptcha } from '@/services/ant-design-pro/login';
-import { useEffect } from 'react';
 import { listChartByPageUsingPost } from '@/services/AutoBI-073/chartController';
+import { getLoginUserUsingGet, userLoginUsingPost } from '@/services/AutoBI-073/userController';
 import { LockOutlined, MobileOutlined, UserOutlined } from '@ant-design/icons';
 import {
   LoginForm,
@@ -10,18 +10,13 @@ import {
   ProFormCheckbox,
   ProFormText,
 } from '@ant-design/pro-components';
-import { FormattedMessage, history, SelectLang, useIntl, useModel, Helmet } from '@umijs/max';
-import { Alert, message, notification, Tabs } from 'antd';
-import Settings from '../../../../config/defaultSettings';
-import React, { useState } from 'react';
-import { flushSync } from 'react-dom';
+import { Helmet, history, useModel } from '@umijs/max';
+import { ConfigProvider, message, notification, Tabs } from 'antd';
 import { createStyles } from 'antd-style';
-import '@/pages/User/CSS/login.css';
+import React, { useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
-import { getLoginUserUsingGet, userLoginUsingPost } from '@/services/AutoBI-073/userController';
-import { ConfigProvider } from 'antd';
-
-
+import Settings from '../../../../config/defaultSettings';
 const useStyles = createStyles(({ token }) => {
   return {
     action: {
@@ -57,45 +52,70 @@ const useStyles = createStyles(({ token }) => {
     },
   };
 });
-
-
 const Lang = () => {
   const { styles } = useStyles();
-
-  return (
-    <div className={styles.lang} data-lang>
-      {SelectLang && <SelectLang />}
-    </div>
-  );
+  return;
 };
-
-
 const Login: React.FC = () => {
   const [userLoginState, setUserLoginState] = useState<API.LoginResult>({});
   const [type, setType] = useState<string>('account');
   const { initialState, setInitialState } = useModel('@@initialState');
   const { styles } = useStyles();
-  const intl = useIntl();
   const location = useLocation();
-  
   useEffect(() => {
     return () => {
       notification.destroy();
     };
   }, [location.pathname]);
-  
   useEffect(() => {
     notification.open({
       message: '游客账号',
       description: (
         <div>
-          <p style={{ display: 'flex', alignItems: 'center', margin: 0 }}>
-            <UserOutlined style={{ marginRight: 8, color: '#1890ff' }} />
-            <strong>用户名:</strong> <span style={{ marginLeft: 4 }}>client</span>
+          <p
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              margin: 0,
+            }}
+          >
+            <UserOutlined
+              style={{
+                marginRight: 8,
+                color: '#1890ff',
+              }}
+            />
+            <strong>用户名:</strong>{' '}
+            <span
+              style={{
+                marginLeft: 4,
+              }}
+            >
+              client
+            </span>
           </p>
-          <p style={{ display: 'flex', alignItems: 'center', margin: 0, marginTop: 8 }}>
-            <LockOutlined style={{ marginRight: 8, color: '#1890ff' }} />
-            <strong>密码:</strong> <span style={{ marginLeft: 4 }}>12345678</span>
+          <p
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              margin: 0,
+              marginTop: 8,
+            }}
+          >
+            <LockOutlined
+              style={{
+                marginRight: 8,
+                color: '#1890ff',
+              }}
+            />
+            <strong>密码:</strong>{' '}
+            <span
+              style={{
+                marginLeft: 4,
+              }}
+            >
+              12345678
+            </span>
           </p>
         </div>
       ),
@@ -108,13 +128,11 @@ const Login: React.FC = () => {
       },
     });
   }, []);
-
-  useEffect(()=>{
-    listChartByPageUsingPost({}).then(res => {
-      console.error('res',res)
-    })
-  })
-  
+  useEffect(() => {
+    listChartByPageUsingPost({}).then((res) => {
+      console.error('res', res);
+    });
+  });
   const fetchUserInfo = async () => {
     const userInfo = await getLoginUserUsingGet();
     console.log('userInfo');
@@ -128,30 +146,23 @@ const Login: React.FC = () => {
       });
     }
   };
-
   const handleSubmit = async (values: API.UserLoginRequest) => {
     try {
       // 登录
       const res = await userLoginUsingPost(values);
       if (res.code === 0) {
-        const defaultLoginSuccessMessage = intl.formatMessage({
-          id: 'pages.login.success',
-          defaultMessage: '登录成功！',
-        });
+        const defaultLoginSuccessMessage = '登录成功！';
         message.success(defaultLoginSuccessMessage);
         await fetchUserInfo();
         console.log(initialState);
         const urlParams = new URL(window.location.href).searchParams;
         history.push(urlParams.get('redirect') || '/');
         return;
-      }else{
+      } else {
         message.error(res.message);
       }
     } catch (error) {
-      const defaultLoginFailureMessage = intl.formatMessage({
-        id: 'pages.login.failure',
-        defaultMessage: '登录失败，请重试！',
-      });
+      const defaultLoginFailureMessage = '登录失败，请重试！';
       console.log(error);
       message.error(defaultLoginFailureMessage);
     }
@@ -178,7 +189,6 @@ const Login: React.FC = () => {
   //     >
   //       {/* 在页面右边添加图片 */}
 
-
   //     {/* 右边登录表单 */}
   //     <LoginForm
   //           contentStyle={{
@@ -188,8 +198,7 @@ const Login: React.FC = () => {
   //           logo={<img alt="logo" src="/logo.svg" />}
   //           title="AutoBI-073"
   //           subTitle={intl.formatMessage({ id: 'AIGC 数据分析平台' })}
-            
-            
+
   //           // initialValues={{
   //           //   autoLogin: true,
   //           // }}
@@ -387,14 +396,11 @@ const Login: React.FC = () => {
   //           </div>
   //         </LoginForm>
 
-
-      
-
   //     </div>
   //     <Footer />
   //   </div>
   // );
-  
+
   return (
     <ConfigProvider
       theme={{
@@ -406,11 +412,7 @@ const Login: React.FC = () => {
       <div className={styles.container}>
         <Helmet>
           <title>
-            {intl.formatMessage({
-              id: 'menu.login',
-              defaultMessage: '登录页',
-            })}
-            - {Settings.title}
+            {'登录页'}- {Settings.title}
           </title>
         </Helmet>
         <Lang />
@@ -427,7 +429,7 @@ const Login: React.FC = () => {
             }}
             logo={<img alt="logo" src="/logo.svg" />}
             title="AutoBI-073"
-            subTitle={intl.formatMessage({ id: 'AIGC 数据分析平台' })}
+            subTitle={'AIGC 数据分析平台'}
             onFinish={async (values) => {
               await handleSubmit(values as API.UserLoginRequest);
             }}
@@ -439,17 +441,11 @@ const Login: React.FC = () => {
               items={[
                 {
                   key: 'account',
-                  label: intl.formatMessage({
-                    id: 'pages.login.accountLogin.tab',
-                    defaultMessage: '账户密码登录',
-                  }),
+                  label: '账户密码登录',
                 },
                 {
                   key: 'email',
-                  label: intl.formatMessage({
-                    id: 'pages.login.phoneLogin.tab',
-                    defaultMessage: '邮箱登录',
-                  }),
+                  label: '邮箱登录',
                 },
               ]}
             />
@@ -461,19 +457,11 @@ const Login: React.FC = () => {
                     size: 'large',
                     prefix: <UserOutlined />,
                   }}
-                  placeholder={intl.formatMessage({
-                    id: 'pages.login.username.placeholder',
-                    defaultMessage: '用户名',
-                  })}
+                  placeholder={'用户名'}
                   rules={[
                     {
                       required: true,
-                      message: (
-                        <FormattedMessage
-                          id="pages.login.username.required"
-                          defaultMessage="请输入用户名!"
-                        />
-                      ),
+                      message: '请输入用户名!',
                     },
                   ]}
                 />
@@ -483,19 +471,11 @@ const Login: React.FC = () => {
                     size: 'large',
                     prefix: <LockOutlined />,
                   }}
-                  placeholder={intl.formatMessage({
-                    id: 'pages.login.password.placeholder',
-                    defaultMessage: '请输入密码',
-                  })}
+                  placeholder={'请输入密码'}
                   rules={[
                     {
                       required: true,
-                      message: (
-                        <FormattedMessage
-                          id="pages.login.password.required"
-                          defaultMessage="请输入密码！"
-                        />
-                      ),
+                      message: '请输入密码！',
                     },
                   ]}
                 />
@@ -509,28 +489,15 @@ const Login: React.FC = () => {
                     prefix: <MobileOutlined />,
                   }}
                   name="mobile"
-                  placeholder={intl.formatMessage({
-                    id: 'pages.login.phoneNumber.placeholder',
-                    defaultMessage: '邮箱',
-                  })}
+                  placeholder={'邮箱'}
                   rules={[
                     {
                       required: true,
-                      message: (
-                        <FormattedMessage
-                          id="pages.login.phoneNumber.required"
-                          defaultMessage="请输入邮箱！"
-                        />
-                      ),
+                      message: '请输入邮箱！',
                     },
                     {
                       pattern: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
-                      message: (
-                        <FormattedMessage
-                          id="pages.login.phoneNumber.invalid"
-                          defaultMessage="邮箱格式错误！"
-                        />
-                      ),
+                      message: '邮箱格式错误！',
                     },
                   ]}
                 />
@@ -542,20 +509,12 @@ const Login: React.FC = () => {
                   captchaProps={{
                     size: 'large',
                   }}
-                  placeholder={intl.formatMessage({
-                    id: 'pages.login.captcha.placeholder',
-                    defaultMessage: '请输入验证码',
-                  })}
+                  placeholder={'请输入验证码'}
                   name="captcha"
                   rules={[
                     {
                       required: true,
-                      message: (
-                        <FormattedMessage
-                          id="pages.login.captcha.required"
-                          defaultMessage="请输入验证码！"
-                        />
-                      ),
+                      message: '请输入验证码！',
                     },
                   ]}
                   onGetCaptcha={async (phone) => {
@@ -576,7 +535,7 @@ const Login: React.FC = () => {
               }}
             >
               <ProFormCheckbox noStyle name="autoLogin">
-                <FormattedMessage id="pages.login.rememberMe" defaultMessage="自动登录" />
+                自动登录
               </ProFormCheckbox>
 
               <Link
@@ -585,7 +544,7 @@ const Login: React.FC = () => {
                   float: 'right',
                 }}
               >
-                <FormattedMessage id="pages.login.forgotPassword" defaultMessage="新用户注册" />
+                新用户注册
               </Link>
             </div>
           </LoginForm>
@@ -595,5 +554,4 @@ const Login: React.FC = () => {
     </ConfigProvider>
   );
 };
-
 export default Login;
